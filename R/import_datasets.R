@@ -1,3 +1,11 @@
+#' Import ISAR standardised research datasets
+#'
+#' This function imports all listed datasets and creates a new "_labelled" version with all variables labelled, categorical variables formatted as factors with defined levels, and confirms and formats dates as defined in dictionary workbook
+#' @param filename Filename of .csv as text
+#' @param keep_raw Specify whether to keep "_raw" unformatted version of dataset object
+#' @return Assigns object in global environment using abbreviated dataset name
+#' @export
+
 import_datasets <- function(filename, keep_raw = T) {
   library(tidyverse)
   library(here)
