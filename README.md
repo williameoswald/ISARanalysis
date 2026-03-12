@@ -12,7 +12,7 @@ devtools::install_github("williameoswald/ISARanalysis")
 
 ## import_datasets
 
-Function for importing list of ISAR standardised datasets and creating new "\_labelled" dataframe objects with variable labels assigned, categorical variables converted to factors with assigned levels, and "YYYY-MM-DD" dates checked and converted to ymd() dates using *lubridate* package. All these cleaning steps use the "ISAR SRD Data Dictionary v1.0.xlsx" that must be imported as a "dictionary" object before use.
+Function for importing list of ISAR standardised datasets and creating new "_labelled" dataframe objects with variable labels assigned, categorical variables converted to factors with assigned levels, and "YYYY-MM-DD" dates checked and converted to ymd() dates using lubridate package. Any date parsing errors will be reported and summarised in an additional object with "_date_parse_failures". All these cleaning steps use the "ISAR SRD Data Dictionary v1.0.xlsx" that must be imported as a "dictionary" object before use.
 
 ### Your inputs
 
