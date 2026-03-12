@@ -47,7 +47,7 @@ filenames |>
 
 ## Contributors
 
-Please contact [me](william.oswald@optimumpatientcare.org) with any questions or suggestions.
+Please contact me with any questions or suggestions.
 
 ## License
 
