@@ -129,7 +129,11 @@ import_datasets <- function(filename, keep_raw = T) {
       keep(\(x) length(x) > 0)
 
     if (length(parse_failures) > 0) {
+<<<<<<< HEAD
       message(glue::glue("Date parse failures in {dataset_name}:"))
+=======
+      message(glue::glue("Date parse failures in {dataset}:"))
+>>>>>>> cfe31e7fd5c2ca8468adc989eff1b89b3bd31e01
       iwalk(parse_failures, \(vals, var) {
         message(glue::glue("  {var}: {paste(vals, collapse = ', ')}"))
       })
