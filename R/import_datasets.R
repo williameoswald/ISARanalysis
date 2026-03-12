@@ -133,12 +133,13 @@ import_datasets <- function(filename, keep_raw = T) {
       iwalk(parse_failures, \(vals, var) {
         message(glue::glue("  {var}: {paste(vals, collapse = ', ')}"))
       })
+
+      assign(
+        paste0(str_to_lower(dataset_name), "_date_parse_failures"),
+        parse_failures,
+        envir = .GlobalEnv
+      )
     }
-    assign(
-      paste0(str_to_lower(dataset_name), "_date_parse_failures"),
-      parse_failures,
-      envir = .GlobalEnv
-    )
   }
 
   #   Check variables present
