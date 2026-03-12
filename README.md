@@ -33,7 +33,7 @@ filenames <- filenames[filenames != "full_dataset.rds"]
 
 # Import ISAR standardised research dataset dictionary as Microsoft Excel workbook using readxl package. NB - make sure file is closed before trying to import.
 dictionary <- readxl::read_xlsx(
-  "C:/Users/William.Oswald/Optimum Patient Care Global Limited/ISAR Team - Documents/Dataset production/Data dictionary/ISAR SRD Data Dictionary v1.0.xlsx"
+  "C:/path/to/folder/Dataset production/Dataset production/Data dictionary/ISAR SRD Data Dictionary v1.0.xlsx"
 )
 
 # Map over all listed files or select specific datasets
@@ -47,7 +47,7 @@ filenames |>
 
 ## Contributors
 
-Please contact [me](william.oswald@optimumpatientcare.org) with any questions or suggestions.
+Please contact me with any questions or suggestions.
 
 ## License
 
