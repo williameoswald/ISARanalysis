@@ -26,15 +26,16 @@ datapath <- "C:/path/to/folder/Dataset production"
 # Current release date of datasets
 versiondate <- "20260309"
 
-# Create list of dataset filenames (without full path)
-filenames <- list.files(here::here(datapath, paste0("Datasets_", versiondate)))
-# Exclude .rds file
-filenames <- filenames[filenames != "full_dataset.rds"]
-
 # Import ISAR standardised research dataset dictionary as Microsoft Excel workbook using readxl package. NB - make sure file is closed before trying to import.
 dictionary <- readxl::read_xlsx(
   "C:/path/to/folder/Dataset production/Data dictionary/ISAR SRD Data Dictionary v1.0.xlsx"
 )
+
+# Create list of dataset filenames (without full path)
+filenames <- list.files(
+  here::here(datapath, paste0("Datasets_", versiondate)),
+  pattern = "\\.csv$"
+  )
 
 # Map over all listed files or select specific datasets
 # filenames <- filenames[filenames != "7. HCRU.csv"] or filenames[c(1, 4)]
