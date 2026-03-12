@@ -62,17 +62,18 @@ import_datasets <- function(filename, keep_raw = T) {
     }
   }
 
-  dataset <- str_to_lower(str_extract(filename, "(?<= ).*(?=\\.)"))
+  dataset_name <- str_extract(filename, "(?<= ).*(?=\\.)")
+
+  dataset_dict_name <- if_else(
+    dataset_name %in% c("HCRU"),
+    dataset_name,
+    str_to_title(str_replace_all(dataset_name, "_", " "))
+  )
 
   dict <- dictionary |>
     janitor::clean_names() |>
     filter(
-      dataset_table ==
-        str_to_title(str_replace_all(
-          str_extract(filename, "(?<= ).*(?=\\.)"),
-          "_",
-          " "
-        ))
+      dataset_table == dataset_dict_name
     ) |>
     mutate(
       units = na_if(units, "N/A"),
@@ -106,7 +107,7 @@ import_datasets <- function(filename, keep_raw = T) {
 
   if (keep_raw) {
     assign(
-      paste0(dataset, "_raw"),
+      paste0(str_to_lower(dataset_name), "_raw"),
       df_raw,
       envir = .GlobalEnv
     )
@@ -114,42 +115,49 @@ import_datasets <- function(filename, keep_raw = T) {
   #   Check date parsing
   date_vars <- dict |> filter(variable_type == "Date") |> pull(variable_name)
 
-  parse_failures <- df_raw |>
-    select(any_of(date_vars)) |>
-    mutate(across(everything(), \(x) {
-      parsed <- lubridate::ymd(x, quiet = TRUE)
-      is.na(parsed) & !is.na(x)
-    })) |>
-    summarise(across(everything(), \(x) {
-      list(unique(df_raw[[cur_column()]][x]))
-    })) |>
-    pivot_longer(
-      everything(),
-      names_to = "variable",
-      values_to = "failed_values"
-    ) |>
-    filter(lengths(failed_values) > 0)
+  if (length(date_vars) > 0) {
+    date_df <- df_raw |> select(any_of(date_vars))
 
-  if (nrow(parse_failures) > 0) {
-    message(glue::glue("Date parse failures in {dataset}:"))
-    message(glue::glue("Date converted to missing"))
-    walk2(parse_failures$variable, parse_failures$failed_values, \(var, vals) {
-      message(glue::glue("  {var}: {paste(vals, collapse = ', ')}"))
-    })
+    failure_mask <- date_df |>
+      mutate(across(everything(), \(x) {
+        is.na(lubridate::ymd(x, quiet = TRUE)) & !is.na(x)
+      }))
 
+    parse_failures <- names(date_df) |>
+      set_names() |>
+      map(\(var) unique(date_df[[var]][failure_mask[[var]]])) |>
+      keep(\(x) length(x) > 0)
+
+    if (length(parse_failures) > 0) {
+      message(glue::glue("Date parse failures in {dataset}:"))
+      iwalk(parse_failures, \(vals, var) {
+        message(glue::glue("  {var}: {paste(vals, collapse = ', ')}"))
+      })
+    }
     assign(
-      paste0(dataset, "_date_parse_failures"),
+      paste0(str_to_lower(dataset_name), "_date_parse_failures"),
       parse_failures,
       envir = .GlobalEnv
     )
   }
 
+  #   Check variables present
+  missing_vars <- setdiff(dict_vars, names(df_raw))
+  if (length(missing_vars) > 0) {
+    warning(
+      glue::glue(
+        "The following dictionary variables were not found in {dataset_dict_name}: ",
+        "{paste(missing_vars, collapse = ', ')}"
+      ),
+      call. = FALSE
+    )
+  }
+
   df <- df_raw |>
-    mutate(across(all_of(dict_vars), factor_and_label_vars))
-  # (\(d) reduce(cat_vars, factor_and_label_vars, .init = d))()
+    mutate(across(any_of(dict_vars), factor_and_label_vars))
 
   assign(
-    paste0(dataset, "_labelled"),
+    paste0(str_to_lower(dataset_name), "_labelled"),
     df,
     envir = .GlobalEnv
   )
