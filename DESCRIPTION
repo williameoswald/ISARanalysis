@@ -1,6 +1,6 @@
 Package: ISARanalysis
 Type: Package
-Title: Package contains tools to support cleaning and analysis of ISAR standardised research datasets
+Title: ISAR research tools
 Version: 0.1.0
 Authors@R: c(
     person(
@@ -9,8 +9,7 @@ Authors@R: c(
       role = c("aut", "cre")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
+Description: Package contains tools to support cleaning and analysis of ISAR standardised research datasets.
 License: CC BY 4.0
 Encoding: UTF-8
 LazyData: true
