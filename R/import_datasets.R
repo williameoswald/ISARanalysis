@@ -55,6 +55,8 @@ import_datasets <- function(filename, keep_raw = T) {
         factor(x, levels = variable_levels),
         label = variable_label
       )
+    } else if (variable_type == "Numeric") {
+      structure(as.numeric(x), label = variable_label)
     } else if (variable_type == "Date") {
       structure(lubridate::ymd(x, quiet = T), label = variable_label)
     } else {
