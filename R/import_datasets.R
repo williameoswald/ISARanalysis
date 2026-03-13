@@ -1,16 +1,20 @@
 #' Import ISAR standardised research datasets
 #'
-#' This function imports all listed datasets and creates a new "_labelled" version with all variables labelled, categorical variables formatted as factors with defined levels, and confirms and formats dates as defined in dictionary workbook
-#' @param filename Filename of .csv as text
-#' @param keep_raw Specify whether to keep "_raw" unformatted version of dataset object
+#' This function imports all listed datasets and creates a new "_labelled" version with all variables labelled, categorical variables formatted as factors with defined levels, and confirms and formats dates/numerics as defined in dictionary workbook
+#' @param filename character. Name of the CSV file to import.
+#' @param keep_raw logical. Whether to keep the raw unlabelled dataset. Default TRUE.
 #' @return Assigns object in global environment using abbreviated dataset name
+#' @importFrom dplyr filter pull mutate select any_of across everything cur_column if_else na_if
+#' @importFrom purrr map compact pluck iwalk set_names
+#' @importFrom stringr str_extract str_replace_all str_to_lower str_to_title str_trim str_squish str_c str_extract_all
+#' @importFrom readr read_csv cols col_character
+#' @importFrom lubridate ymd
+#' @importFrom janitor clean_names
+#' @importFrom glue glue
+#' @importFrom here here
+#'
 #' @export
-
-import_datasets <- function(filename, keep_raw = T) {
-  library(tidyverse)
-  library(here)
-  library(janitor)
-
+import_datasets <- function(filename, keep_raw = TRUE) {
   if (!exists("dictionary", envir = .GlobalEnv)) {
     stop(glue::glue("Dataset dictionary not found in parent environment"))
   }
@@ -37,17 +41,17 @@ import_datasets <- function(filename, keep_raw = T) {
   factor_and_label_vars <- function(x) {
     variable <- cur_column()
 
-    variable_label <- dict |>
-      filter(variable_name == variable) |>
+    var_dict <- dict |>
+      filter(variable_name == variable)
+
+    variable_label <- var_dict |>
       pull(variable_label)
 
-    variable_type <- dict |>
-      filter(variable_name == variable) |>
+    variable_type <- var_dict |>
       pull(variable_type)
 
     if (variable_type == "Categoric") {
-      variable_levels <- dict |>
-        filter(variable_name == variable) |>
+      variable_levels <- var_dict |>
         pull(variable_levels_parsed) |>
         pluck(1)
 
@@ -56,14 +60,59 @@ import_datasets <- function(filename, keep_raw = T) {
         label = variable_label
       )
     } else if (variable_type == "Numeric") {
-      structure(as.numeric(x), label = variable_label)
+      structure(suppressWarnings(as.numeric(x)), label = variable_label)
     } else if (variable_type == "Date") {
-      structure(lubridate::ymd(x, quiet = T), label = variable_label)
+      structure(lubridate::ymd(x, quiet = TRUE), label = variable_label)
     } else {
       structure(x, label = variable_label)
     }
   }
 
+  #   Helper function to check date and numeric value parsing
+  check_parse_failures <- function(df, type, dataset_name) {
+    vars <- dict |> filter(variable_type == type) |> pull(variable_name)
+
+    if (length(vars) == 0) {
+      return(invisible(NULL))
+    }
+
+    if (type == "Date") {
+      parse_fn <- function(x) {
+        lubridate::ymd(x, quiet = TRUE)
+      }
+    } else if (type == "Numeric") {
+      parse_fn <- function(x) {
+        suppressWarnings(as.numeric(x))
+      }
+    }
+
+    type_df <- df |> select(any_of(vars))
+
+    failure_mask <- type_df |>
+      mutate(across(everything(), \(x) is.na(parse_fn(x)) & !is.na(x)))
+
+    failures <- names(type_df) |>
+      set_names() |>
+      map(\(var) unique(type_df[[var]][failure_mask[[var]]])) |>
+      compact()
+
+    if (length(failures) > 0) {
+      message(glue::glue("{type} parse failures in {dataset_name}:"))
+      iwalk(failures, \(vals, var) {
+        message(glue::glue("  {var}: {paste(vals, collapse = ', ')}"))
+      })
+      assign(
+        paste0(
+          str_to_lower(dataset_name),
+          "_",
+          str_to_lower(type),
+          "_parse_failures"
+        ),
+        failures,
+        envir = .GlobalEnv
+      )
+    }
+  }
   dataset_name <- str_extract(filename, "(?<= ).*(?=\\.)")
 
   dataset_dict_name <- if_else(
@@ -90,8 +139,7 @@ import_datasets <- function(filename, keep_raw = T) {
         NA
       ),
       variable_levels_parsed = map(variable_levels, parse_levels)
-    ) |>
-    select(contains("variable_"))
+    )
 
   dict_vars <- dict |> pull(variable_name)
 
@@ -114,35 +162,10 @@ import_datasets <- function(filename, keep_raw = T) {
       envir = .GlobalEnv
     )
   }
-  #   Check date parsing
-  date_vars <- dict |> filter(variable_type == "Date") |> pull(variable_name)
 
-  if (length(date_vars) > 0) {
-    date_df <- df_raw |> select(any_of(date_vars))
-
-    failure_mask <- date_df |>
-      mutate(across(everything(), \(x) {
-        is.na(lubridate::ymd(x, quiet = TRUE)) & !is.na(x)
-      }))
-
-    parse_failures <- names(date_df) |>
-      set_names() |>
-      map(\(var) unique(date_df[[var]][failure_mask[[var]]])) |>
-      keep(\(x) length(x) > 0)
-
-    if (length(parse_failures) > 0) {
-      message(glue::glue("Date parse failures in {dataset_name}:"))
-      iwalk(parse_failures, \(vals, var) {
-        message(glue::glue("  {var}: {paste(vals, collapse = ', ')}"))
-      })
-
-      assign(
-        paste0(str_to_lower(dataset_name), "_date_parse_failures"),
-        parse_failures,
-        envir = .GlobalEnv
-      )
-    }
-  }
+  #   Check parsing of dates and numerics
+  check_parse_failures(df_raw, "Date", dataset_name)
+  check_parse_failures(df_raw, "Numeric", dataset_name)
 
   #   Check variables present
   missing_vars <- setdiff(dict_vars, names(df_raw))
