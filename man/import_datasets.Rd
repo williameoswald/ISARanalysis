@@ -4,16 +4,16 @@
 \alias{import_datasets}
 \title{Import ISAR standardised research datasets}
 \usage{
-import_datasets(filename, keep_raw = T)
+import_datasets(filename, keep_raw = TRUE)
 }
 \arguments{
-\item{filename}{Filename of .csv as text}
+\item{filename}{character. Name of the CSV file to import.}
 
-\item{keep_raw}{Specify whether to keep "_raw" unformatted version of dataset object}
+\item{keep_raw}{logical. Whether to keep the raw unlabelled dataset. Default TRUE.}
 }
 \value{
 Assigns object in global environment using abbreviated dataset name
 }
 \description{
-This function imports all listed datasets and creates a new "_labelled" version with all variables labelled, categorical variables formatted as factors with defined levels, and confirms and formats dates as defined in dictionary workbook
+This function imports all listed datasets and creates a new "_labelled" version with all variables labelled, categorical variables formatted as factors with defined levels, and confirms and formats dates/numerics as defined in dictionary workbook
 }
