@@ -50,7 +50,12 @@ filenames |>
 
 Additional cleaning functions can be used after import function to conduct range checks and create additional (e.g. categorical) variables for analysis.
 
+**Details:**
+
+***Spirometry*** - for longitudinal analyses be careful that comparisons over time are consistent with the use of available pre- or post-bronchodilator measures. The cleaning function prioritises *post-bronchodilator* measures for FEV1 and FVC, which is appropriate for baseline/pre-biologic description.
+
 ### Example workflow
+
 ```{r}
 
 # Cleaning function already refers to spirometry_labelled dataframe
