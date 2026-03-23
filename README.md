@@ -12,13 +12,13 @@ devtools::install_github("williameoswald/ISARanalysis")
 
 ## import_datasets
 
-Function for importing list of ISAR standardised datasets and creating new "_labelled" dataframe objects with variable labels assigned, categorical variables converted to factors with assigned levels, and "YYYY-MM-DD" dates checked and converted to ymd() dates using lubridate package. Any date parsing errors will be reported and summarised in an additional object with "_date_parse_failures". All these cleaning steps use the "ISAR SRD Data Dictionary v1.0.xlsx" that must be imported as a "dictionary" object before use.
+Function for importing list of ISAR standardised datasets and creating new "\_labelled" dataframe objects with variable labels assigned, categorical variables converted to factors with assigned levels, and "YYYY-MM-DD" dates checked and converted to ymd() dates using lubridate package. Any date parsing errors will be reported and summarised in an additional object with "\_date_parse_failures". All these cleaning steps use the "ISAR SRD Data Dictionary v1.0.xlsx" that must be imported as a "dictionary" object before use.
 
 ### Your inputs
 
 Specify filename to import and whether you wish to keep a "\_raw" imported version of dataset without formatting.
 
-## Example workflow
+### Example workflow
 
 ```{r}
 # Location of data folder on Sharepoint
@@ -43,6 +43,18 @@ filenames <- list.files(
 filenames |>
   purrr::set_names() |>
   purrr::map(\(x) import_datasets(x, keep_raw = T), .progress = T)
+
+```
+
+## Cleaning datasets
+
+Additional cleaning functions can be used after import function to conduct range checks and create additional (e.g. categorical) variables for analysis.
+
+### Example workflow
+```{r}
+
+# Cleaning function already refers to spirometry_labelled dataframe
+spirometry_clean <- clean_spirometry()
 
 ```
 
