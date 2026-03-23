@@ -18,7 +18,7 @@ clean_spirometry <- function(
   fvc_range_high = 8
 ) {
   df |>
-    # Range checks
+    # Range checks against specified values
     mutate(
       across(
         c(pre_fev1, post_fev1),
@@ -35,7 +35,12 @@ clean_spirometry <- function(
             (var < fvc_range_low | var > fvc_range_high)
         },
         .names = "{.col}_exclude"
-      )
+      ),
+      # FEV1 should be less than FVC
+      pre_fev1_exclude = pre_fev1_exclude |
+        (!is.na(pre_fev1) & !is.na(pre_fvc) & pre_fev1 >= pre_fvc),
+      post_fev1_exclude = post_fev1_exclude |
+        (!is.na(post_fev1) & !is.na(post_fvc) & post_fev1 >= post_fvc)
     ) |>
     mutate(
       fev1 = structure(
