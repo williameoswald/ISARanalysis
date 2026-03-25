@@ -2,7 +2,7 @@
 % Please edit documentation in R/clean_datasets.R
 \name{clean_spirometry}
 \alias{clean_spirometry}
-\title{Clean ISAR standardised research datasets}
+\title{Clean and derive spirometry measures from ISAR standardised spirometry dataset.}
 \usage{
 clean_spirometry(
   df = spirometry_labelled,
@@ -24,5 +24,10 @@ clean_spirometry(
 \item{fvc_range_high}{numeric. Highest plausible value for FVC range check.}
 }
 \description{
-This function further processes standardised spirometry dataset to flag fev1 and fvc measures outside specified range, create single FEV1, FVC, FEV1/FVC, and percent predicted FEV1 prioritisint post-bronchodilator measures and excluding those failing range check and creates new categorical measures for FEV1, FEV1/FVC ratio.
+Applies range checks and plausibility checks (FEV1 >= FVC) to pre- and
+post-bronchodilator spirometry measures. Where post-bronchodilator measures
+are available at every timepoint for a patient, they are prioritised over
+pre-bronchodilator measures. Derives single composite FEV1, FVC, FEV1/FVC ratio,
+and percent predicted FEV1 measures, along with categorical classifications
+for FEV1 percent predicted (<80% vs ≥80%) and FEV1/FVC ratio (<0.70 vs ≥0.70).
 }

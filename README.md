@@ -50,9 +50,11 @@ filenames |>
 
 Additional cleaning functions can be used after import function to conduct range checks and create additional (e.g. categorical) variables for analysis.
 
-**Details:**
+***clean_spirometry***
 
-***Spirometry*** - for longitudinal analyses be careful that comparisons over time are consistent with the use of available pre- or post-bronchodilator measures. The cleaning function prioritises *post-bronchodilator* measures for FEV1 and FVC, which is appropriate for baseline/pre-biologic description.
+Applies range checks and plausibility checks (FEV1 \>= FVC) to pre- and post-bronchodilator spirometry measures. Where post-bronchodilator measures are available at every timepoint for a patient, they are prioritised over pre-bronchodilator measures. Derives single composite FEV1, FVC, FEV1/FVC ratio, and percent predicted FEV1 measures, along with categorical classifications for FEV1 percent predicted (\<80% vs ≥80%) and FEV1/FVC ratio (\<0.70 vs ≥0.70).
+
+*NB* - for longitudinal comparisons of FEV1, FVC, FEV1 percent predicted over time use pre- or post-bronchodilator measures consistently.
 
 ### Example workflow
 
