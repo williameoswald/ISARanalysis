@@ -147,7 +147,6 @@ import_datasets <- function(filename, keep_raw = TRUE) {
     here(
       datapath,
       paste0(
-        "Datasets_",
         versiondate
       ),
       filename
