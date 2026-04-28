@@ -195,3 +195,47 @@ clean_demographics <- function(df = demographics_labelled) {
       )
     )
 }
+
+#' Clean and derive lifestyle measures from ISAR standardised lifestyle dataset.
+#'
+#' Applies range checks and plausibility checks height and weight measures and cleans
+#' BMI measure accordingly. Derives categorical classifications for obese (BMI <30 vs. ≥30 kg/m2)
+#'
+#' @param df character. Name of labelled demographics dataset.
+#' @importFrom dplyr across mutate case_when
+#'
+#' @export
+clean_lifestyle <- function(df = lifestyle_labelled) {
+  df |>
+    mutate(
+      # Range checks
+      across(
+        c(weight),
+        \(var) {
+          var < 20 | var > 635
+        },
+        .names = "{.col}_exclude"
+      ),
+      across(
+        c(height),
+        \(var) {
+          var < 1.3 | var > 2.2
+        },
+        .names = "{.col}_exclude"
+      ),
+      bmi = case_when(
+        height_exclude | weight_exclude ~ NA,
+        is.na(height) | is.na(weight) ~ NA,
+        .default = bmi
+      ),
+      obese = structure(
+        case_when(
+          bmi < 30 ~ "No",
+          bmi >= 30 ~ "Yes",
+          .default = NA
+        ) |>
+          factor(levels = c("Yes", "No")),
+        label = "Obese (BMI ≥30 kg/m2)"
+      )
+    )
+}
