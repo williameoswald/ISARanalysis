@@ -156,3 +156,42 @@ clean_spirometry <- function(
       )
     )
 }
+
+#' Clean and derive demographic measures from ISAR standardised demographics dataset.
+#'
+#' Derives asthma onset categories (<12, 12-40, >40 years), asthma duration (in years),
+#' and asthma duration categories (<10, 10-<25, ≥25) from labelled demographic data.
+#'
+#' @param df character. Name of labelled demographics dataset.
+#' @importFrom dplyr mutate case_when
+#'
+#' @export
+clean_demographics <- function(df = demographics_labelled) {
+  df |>
+    mutate(
+      asthma_onset_cat = structure(
+        case_when(
+          asthma_onset < 12 ~ "<12",
+          asthma_onset <= 40 ~ "12-40",
+          asthma_onset > 40 ~ ">40",
+          .default = NA
+        ) |>
+          factor(levels = c("<12", "12-40", ">40")),
+        label = "Age at asthma onset, Years"
+      ),
+      asthma_duration = structure(
+        index_age - asthma_onset,
+        label = "Asthma duration, Years"
+      ),
+      asthma_duration_cat = structure(
+        case_when(
+          asthma_duration < 10 ~ "<10",
+          asthma_duration < 25 ~ "10-<25",
+          asthma_duration >= 25 ~ "≥25",
+          .default = NA
+        ) |>
+          factor(levels = c("<10", "10-<25", "≥25")),
+        label = "Asthma duration, Years"
+      )
+    )
+}
