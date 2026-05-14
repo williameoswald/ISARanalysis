@@ -1,3 +1,8 @@
+#' Helper function to remove unused (empty) imputation fields from ISAR standardised datasets.
+#'
+#' @importFrom dplyr filter_out mutate across if_else case_when ends_with where any_of all any
+#'
+#' @export
 remove_empty_imputation_fields <- function(df) {
   # Find imputed columns where all values are 0
   all_zero_imputed <- df |>
