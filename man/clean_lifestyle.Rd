@@ -7,7 +7,7 @@
 clean_lifestyle(df = lifestyle_labelled)
 }
 \arguments{
-\item{df}{character. Name of labelled demographics dataset.}
+\item{df}{character. Name of labelled lifestyle dataset.}
 }
 \description{
 Applies range checks and plausibility checks height and weight measures and cleans
