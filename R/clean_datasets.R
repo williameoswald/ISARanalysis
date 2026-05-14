@@ -201,7 +201,7 @@ clean_demographics <- function(df = demographics_labelled) {
 #' Applies range checks and plausibility checks height and weight measures and cleans
 #' BMI measure accordingly. Derives categorical classifications for obese (BMI <30 vs. ≥30 kg/m2)
 #'
-#' @param df character. Name of labelled demographics dataset.
+#' @param df character. Name of labelled lifestyle dataset.
 #' @importFrom dplyr across mutate case_when
 #'
 #' @export
@@ -237,5 +237,87 @@ clean_lifestyle <- function(df = lifestyle_labelled) {
           factor(levels = c("Yes", "No")),
         label = "Obese (BMI ≥30 kg/m2)"
       )
+    )
+}
+
+#' Clean and derive comorbidity measures from ISAR standardised comorbidities dataset.
+#'
+#' @param df character. Name of labelled comorbidity dataset.
+#' @importFrom dplyr across mutate case_when
+#'
+#' @export
+clean_comorbidities <- function(df = comorbidities_labelled) {
+  df |>
+    mutate(
+      crs = structure(crs, label = "CRS (+/-NP)"),
+      crswnp = structure(nasal_polyps, label = "CRSwNP"),
+      ad = structure(eczema, label = "Eczema/Atopic dermatitis"),
+      anxdep = structure(
+        case_when(
+          anxiety == "Ever" | depression == "Ever" ~ "Yes",
+          anxiety == "Never" & depression == "Never" ~ "No",
+          .default = NA
+        ) |>
+          factor(levels = c("Yes", "No")),
+        label = "History of anxiety and/or depression"
+      )
+    )
+}
+
+#' Clean and derive asthma control measures from ISAR standardised asthma control dataset.
+#'
+#' Recodes GINA asthma control responses to numeric values to calculate score and
+#' uses to derive GINA asthma control classification (Well controlled vs
+#' Partly controlled vs Uncontrolled). Derives categorical classifications for
+#' asthma control based on available ACQ and ACT scores.
+#'
+#' @importFrom dplyr filter_out mutate across if_else case_when contains
+#'
+#' @export
+clean_asthma_control <- function(df = asthma_control_labelled) {
+  df |>
+    mutate(
+      # Recode gina control questions as yes = 1 and no = 0
+      across(
+        contains("gina"),
+        ~ case_when(. == "Yes" ~ 1, . == "No" ~ 0, .default = NA)
+      ),
+      # Calculate gina control score
+      gina_score = pick(
+        gina_day_1,
+        gina_activity_2,
+        gina_night_3,
+        gina_reliever_4
+      ) |>
+        rowSums(na.rm = FALSE),
+      # Classify gina control score
+      gina_ac = case_when(
+        gina_score == 0 ~ "Well Controlled",
+        gina_score <= 2 ~ "Partly Controlled",
+        gina_score <= 4 ~ "Uncontrolled"
+      ) |>
+        factor(
+          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
+        ),
+      # Classify ACQ score (version of test used is unavailable)
+      acq_ac = case_when(
+        acq_score <= 0.75 ~ "Well Controlled",
+        acq_score < 1.5 ~ "Partly Controlled",
+        acq_score >= 1.5 ~ "Uncontrolled",
+        .default = NA
+      ) |>
+        factor(
+          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
+        ),
+      # Classify ACT score
+      act_ac = case_when(
+        act_score < 16 ~ "Uncontrolled",
+        act_score < 20 ~ "Partly Controlled",
+        act_score >= 20 ~ "Well Controlled",
+        .default = NA
+      ) |>
+        factor(
+          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
+        )
     )
 }
