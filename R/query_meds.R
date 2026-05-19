@@ -13,7 +13,7 @@
 #' @param query_dates A tibble with at minimum a `patient_id` column and a date
 #'   column matching `search_anchor_date_col`. One row per patient. Patients
 #'   present in `query_dates` but absent from `df` (i.e. no medication records)
-#'   are dropped; ensure upstream filtering accounts for this.
+#'   are dropped.
 #' @param med_class_select Character scalar. The medication class to filter on,
 #'   matched against the `med_class` column. Defaults to `"LTOCS"`. The output
 #'   variable is derived from this value as `{str_to_lower(med_class_select)}_yn`
@@ -24,7 +24,7 @@
 #'   `"index_date"`.
 #' @param search_mos Integer. Number of months to look back from the anchor
 #'   date. Negative values look forward. Month arithmetic uses
-#'   [lubridate::%m-%()][lubridate::`%m-%`] to handle end-of-month edge cases.
+#'   [lubridate::%m-%][lubridate::`%m-%`] to handle end-of-month edge cases.
 #'   Defaults to `12`.
 #' @param countryname Character vector or `NULL`. If provided, restricts
 #'   records to the specified country or countries (matched against `country`).
