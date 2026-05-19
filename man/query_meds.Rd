@@ -2,7 +2,7 @@
 % Please edit documentation in R/query_meds.R
 \name{query_meds}
 \alias{query_meds}
-\title{Query ISAR medications dataset to flag use of medication within period of time.}
+\title{Query ISAR medications dataset to flag treatment within period of time}
 \usage{
 query_meds(
   df = meds,
@@ -67,25 +67,21 @@ constructs treatment intervals, and classifies each patient as Yes/No based
 on whether any recorded treatment interval overlaps the search window.
 }
 \details{
-*Search window construction*
-
 The search window is derived from `query_dates` using the column specified
 by `search_anchor_date_col` as the index date:
-search_start = anchor_date %m-% months(search_mos)
-search_end = anchor_date
-Uses [lubridate::interval] which allows search_start > search_end.
+search_start = anchor_date %m-% months(search_mos) and search_end = anchor_date
 
-Month arithmetic uses [lubridate::`%m-%`] to handle end-of-month edge cases.
+\link[lubridate]{interval} allows search_start > search_end.
+
+Month arithmetic uses \link[lubridate]{\%m+\%} to handle end-of-month edge cases.
 Always returns a date in the nth month after Date. If the new date would usually
-spill over into the n + 1th month, %m+% will return the last day of the nth month.
+spill over into the n + 1th month, \%m+\% will return the last day of the nth month.
 
-*Classification algorithm*
-
-* If both `med_stdate` and `med_endate` are present: `interval(med_stdate, med_endate)`
-* If only `med_stdate` is present (open-ended): `interval(med_stdate, visit_date)`,
-  using the visit date as a conservative imputed end — i.e. the treatment
-  was known to be active at least up to this visit.
-* Otherwise: `NA` (no interval can be constructed).
+If both `med_stdate` and `med_endate` are present, then `med_interval` = `interval(med_stdate, med_endate)`.
+If only `med_stdate` is present (open-ended), then `med_interval` = `interval(med_stdate, visit_date)`,
+using the visit date as a conservative imputed end — i.e. the treatment
+was known to be active at least up to this visit. Otherwise, `med_interval` = `NA` (no interval
+can be constructed).
 
 Each visit row is then assigned a `search_result`:
 
@@ -153,7 +149,9 @@ purrr::map(
 
 }
 \seealso{
-[lubridate::interval()]
-[lubridate::int_overlaps()]
-[lubridate::`%m-%`]
+\link[lubridate]{interval}
+
+\link[lubridate]{int_overlaps}
+
+\link[lubridate]{\%m+\%}
 }

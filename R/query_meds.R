@@ -1,4 +1,4 @@
-#' Query ISAR medications dataset to flag use of medication within period of time.
+#' Query ISAR medications dataset to flag treatment within period of time
 #'
 #' Determines whether a patient was on a specified medication class within a
 #' defined time window preceding (or following) an anchor date. The function
@@ -36,25 +36,21 @@
 #'
 #' @details
 #'
-#' *Search window construction*
-#'
 #' The search window is derived from `query_dates` using the column specified
 #' by `search_anchor_date_col` as the index date:
-#' search_start = anchor_date %m-% months(search_mos)
-#' search_end = anchor_date
-#' Uses [lubridate::interval] which allows search_start > search_end.
+#' search_start = anchor_date %m-% months(search_mos) and search_end = anchor_date
 #'
-#' Month arithmetic uses [lubridate::`%m-%`] to handle end-of-month edge cases.
+#' \link[lubridate]{interval} allows search_start > search_end.
+#'
+#' Month arithmetic uses \link[lubridate]{\%m+\%} to handle end-of-month edge cases.
 #' Always returns a date in the nth month after Date. If the new date would usually
-#' spill over into the n + 1th month, %m+% will return the last day of the nth month.
+#' spill over into the n + 1th month, \%m+\% will return the last day of the nth month.
 #'
-#' *Classification algorithm*
-#'
-#' * If both `med_stdate` and `med_endate` are present: `interval(med_stdate, med_endate)`
-#' * If only `med_stdate` is present (open-ended): `interval(med_stdate, visit_date)`,
-#'   using the visit date as a conservative imputed end — i.e. the treatment
-#'   was known to be active at least up to this visit.
-#' * Otherwise: `NA` (no interval can be constructed).
+#' If both `med_stdate` and `med_endate` are present, then `med_interval` = `interval(med_stdate, med_endate)`.
+#' If only `med_stdate` is present (open-ended), then `med_interval` = `interval(med_stdate, visit_date)`,
+#' using the visit date as a conservative imputed end — i.e. the treatment
+#' was known to be active at least up to this visit. Otherwise, `med_interval` = `NA` (no interval
+#' can be constructed).
 #'
 #' Each visit row is then assigned a `search_result`:
 #'
@@ -89,11 +85,9 @@
 #'     whether the patient was on the specified medication class within the
 #'     search window. `NA` indicates indeterminate status.}
 #' }
-#'
-#' @seealso
-#' [lubridate::interval()]
-#' [lubridate::int_overlaps()]
-#' [lubridate::`%m-%`]
+#' @seealso \link[lubridate]{interval}
+#' @seealso \link[lubridate]{int_overlaps}
+#' @seealso \link[lubridate]{\%m+\%}
 #'
 #' @importFrom dplyr filter select distinct inner_join mutate bind_rows
 #' @importFrom lubridate interval int_overlaps `%m-%`
