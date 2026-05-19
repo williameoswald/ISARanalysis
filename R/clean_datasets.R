@@ -1,3 +1,169 @@
+#' Clean and derive demographic measures from ISAR standardised demographics dataset.
+#'
+#' Derives asthma onset categories (<12, 12-40, >40 years), asthma duration (in years),
+#' and asthma duration categories (<10, 10-<25, ≥25) from labelled demographic data.
+#'
+#' @param df character. Name of labelled demographics dataset.
+#' @importFrom dplyr mutate case_when
+#'
+#' @export
+clean_demographics <- function(df = demographics_labelled) {
+  df |>
+    mutate(
+      asthma_onset_cat = structure(
+        case_when(
+          asthma_onset < 12 ~ "<12",
+          asthma_onset <= 40 ~ "12-40",
+          asthma_onset > 40 ~ ">40",
+          .default = NA
+        ) |>
+          factor(levels = c("<12", "12-40", ">40")),
+        label = "Age at asthma onset, Years"
+      ),
+      asthma_duration = structure(
+        index_age - asthma_onset,
+        label = "Asthma duration, Years"
+      ),
+      asthma_duration_cat = structure(
+        case_when(
+          asthma_duration < 10 ~ "<10",
+          asthma_duration < 25 ~ "10-<25",
+          asthma_duration >= 25 ~ "≥25",
+          .default = NA
+        ) |>
+          factor(levels = c("<10", "10-<25", "≥25")),
+        label = "Asthma duration, Years"
+      )
+    )
+}
+
+#' Clean and derive lifestyle measures from ISAR standardised lifestyle dataset.
+#'
+#' Applies range checks and plausibility checks height and weight measures and cleans
+#' BMI measure accordingly. Derives categorical classifications for obese (BMI <30 vs. ≥30 kg/m2)
+#'
+#' @param df character. Name of labelled lifestyle dataset.
+#' @importFrom dplyr across mutate case_when
+#'
+#' @export
+clean_lifestyle <- function(df = lifestyle_labelled) {
+  df |>
+    mutate(
+      # Range checks
+      across(
+        c(weight),
+        \(var) {
+          var < 20 | var > 635
+        },
+        .names = "{.col}_exclude"
+      ),
+      across(
+        c(height),
+        \(var) {
+          var < 1.3 | var > 2.2
+        },
+        .names = "{.col}_exclude"
+      ),
+      bmi = case_when(
+        height_exclude | weight_exclude ~ NA,
+        is.na(height) | is.na(weight) ~ NA,
+        .default = bmi
+      ),
+      obese = structure(
+        case_when(
+          bmi < 30 ~ "No",
+          bmi >= 30 ~ "Yes",
+          .default = NA
+        ) |>
+          factor(levels = c("Yes", "No")),
+        label = "Obese (BMI ≥30 kg/m2)"
+      )
+    )
+}
+
+#' Clean and derive comorbidity measures from ISAR standardised comorbidities dataset.
+#'
+#' @param df character. Name of labelled comorbidity dataset.
+#' @importFrom dplyr across mutate case_when
+#'
+#' @export
+clean_comorbidities <- function(df = comorbidities_labelled) {
+  df |>
+    mutate(
+      crs = structure(crs, label = "CRS (+/-NP)"),
+      crswnp = structure(nasal_polyps, label = "CRSwNP"),
+      ad = structure(eczema, label = "Eczema/Atopic dermatitis"),
+      anxdep = structure(
+        case_when(
+          anxiety == "Ever" | depression == "Ever" ~ "Yes",
+          anxiety == "Never" & depression == "Never" ~ "No",
+          .default = NA
+        ) |>
+          factor(levels = c("Yes", "No")),
+        label = "History of anxiety and/or depression"
+      )
+    )
+}
+
+#' Clean and derive asthma control measures from ISAR standardised asthma control dataset.
+#'
+#' Recodes GINA asthma control responses to numeric values to calculate score and
+#' uses to derive GINA asthma control classification (Well controlled vs
+#' Partly controlled vs Uncontrolled). Derives categorical classifications for
+#' asthma control based on available ACQ and ACT scores.
+#'
+#' @param df character. Name of labelled asthma control dataset.
+#' @importFrom dplyr filter_out mutate across if_else case_when contains
+#'
+#' @export
+clean_asthma_control <- function(df = asthma_control_labelled) {
+  df |>
+    mutate(
+      # Recode gina control questions as yes = 1 and no = 0
+      across(
+        contains("gina"),
+        ~ case_when(. == "Yes" ~ 1, . == "No" ~ 0, .default = NA)
+      ),
+      # Calculate gina control score
+      gina_score = pick(
+        gina_day_1,
+        gina_activity_2,
+        gina_night_3,
+        gina_reliever_4
+      ) |>
+        rowSums(na.rm = FALSE),
+      # Classify gina control score
+      gina_ac = case_when(
+        gina_score == 0 ~ "Well Controlled",
+        gina_score <= 2 ~ "Partly Controlled",
+        gina_score <= 4 ~ "Uncontrolled"
+      ) |>
+        factor(
+          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
+        ),
+      # Classify ACQ score (version of test used is unavailable)
+      acq_ac = case_when(
+        acq_score <= 0.75 ~ "Well Controlled",
+        acq_score < 1.5 ~ "Partly Controlled",
+        acq_score >= 1.5 ~ "Uncontrolled",
+        .default = NA
+      ) |>
+        factor(
+          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
+        ),
+      # Classify ACT score
+      act_ac = case_when(
+        act_score < 16 ~ "Uncontrolled",
+        act_score < 20 ~ "Partly Controlled",
+        act_score >= 20 ~ "Well Controlled",
+        .default = NA
+      ) |>
+        factor(
+          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
+        )
+    )
+}
+
 #' Clean and derive spirometry measures from ISAR standardised spirometry dataset.
 #'
 #' Applies range checks and plausibility checks (FEV1 >= FVC) to pre- and
@@ -157,167 +323,65 @@ clean_spirometry <- function(
     )
 }
 
-#' Clean and derive demographic measures from ISAR standardised demographics dataset.
+#' Clean and derive measures from ISAR standardised biologics dataset.
 #'
-#' Derives asthma onset categories (<12, 12-40, >40 years), asthma duration (in years),
-#' and asthma duration categories (<10, 10-<25, ≥25) from labelled demographic data.
+#' Creates additional short biologic name variable that excludes product names.
+#' Creates biologic type variable that distinguishes between IL5 and IL5R based
+#' on product. Renames variables to shorter prefix "bx_" in place of "bio_"
+#' and expands start and end date variable names.
 #'
-#' @param df character. Name of labelled demographics dataset.
-#' @importFrom dplyr mutate case_when
-#'
-#' @export
-clean_demographics <- function(df = demographics_labelled) {
-  df |>
-    mutate(
-      asthma_onset_cat = structure(
-        case_when(
-          asthma_onset < 12 ~ "<12",
-          asthma_onset <= 40 ~ "12-40",
-          asthma_onset > 40 ~ ">40",
-          .default = NA
-        ) |>
-          factor(levels = c("<12", "12-40", ">40")),
-        label = "Age at asthma onset, Years"
-      ),
-      asthma_duration = structure(
-        index_age - asthma_onset,
-        label = "Asthma duration, Years"
-      ),
-      asthma_duration_cat = structure(
-        case_when(
-          asthma_duration < 10 ~ "<10",
-          asthma_duration < 25 ~ "10-<25",
-          asthma_duration >= 25 ~ "≥25",
-          .default = NA
-        ) |>
-          factor(levels = c("<10", "10-<25", "≥25")),
-        label = "Asthma duration, Years"
-      )
-    )
-}
-
-#' Clean and derive lifestyle measures from ISAR standardised lifestyle dataset.
-#'
-#' Applies range checks and plausibility checks height and weight measures and cleans
-#' BMI measure accordingly. Derives categorical classifications for obese (BMI <30 vs. ≥30 kg/m2)
-#'
-#' @param df character. Name of labelled lifestyle dataset.
-#' @importFrom dplyr across mutate case_when
+#' @param df character. Name of labelled biologics dataset.
+#' @importFrom dplyr mutate relocate case_when contains
 #'
 #' @export
-clean_lifestyle <- function(df = lifestyle_labelled) {
+clean_biologics <- function(df = biologics_labelled) {
   df |>
+    rename_with(
+      .cols = contains("bio_"),
+      ~ str_replace(., "bio_", "bx_")
+    ) |>
     mutate(
-      # Range checks
-      across(
-        c(weight),
-        \(var) {
-          var < 20 | var > 635
-        },
-        .names = "{.col}_exclude"
-      ),
-      across(
-        c(height),
-        \(var) {
-          var < 1.3 | var > 2.2
-        },
-        .names = "{.col}_exclude"
-      ),
-      bmi = case_when(
-        height_exclude | weight_exclude ~ NA,
-        is.na(height) | is.na(weight) ~ NA,
-        .default = bmi
-      ),
-      obese = structure(
-        case_when(
-          bmi < 30 ~ "No",
-          bmi >= 30 ~ "Yes",
-          .default = NA
-        ) |>
-          factor(levels = c("Yes", "No")),
-        label = "Obese (BMI ≥30 kg/m2)"
-      )
-    )
-}
-
-#' Clean and derive comorbidity measures from ISAR standardised comorbidities dataset.
-#'
-#' @param df character. Name of labelled comorbidity dataset.
-#' @importFrom dplyr across mutate case_when
-#'
-#' @export
-clean_comorbidities <- function(df = comorbidities_labelled) {
-  df |>
-    mutate(
-      crs = structure(crs, label = "CRS (+/-NP)"),
-      crswnp = structure(nasal_polyps, label = "CRSwNP"),
-      ad = structure(eczema, label = "Eczema/Atopic dermatitis"),
-      anxdep = structure(
-        case_when(
-          anxiety == "Ever" | depression == "Ever" ~ "Yes",
-          anxiety == "Never" & depression == "Never" ~ "No",
-          .default = NA
-        ) |>
-          factor(levels = c("Yes", "No")),
-        label = "History of anxiety and/or depression"
-      )
-    )
-}
-
-#' Clean and derive asthma control measures from ISAR standardised asthma control dataset.
-#'
-#' Recodes GINA asthma control responses to numeric values to calculate score and
-#' uses to derive GINA asthma control classification (Well controlled vs
-#' Partly controlled vs Uncontrolled). Derives categorical classifications for
-#' asthma control based on available ACQ and ACT scores.
-#'
-#' @importFrom dplyr filter_out mutate across if_else case_when contains
-#'
-#' @export
-clean_asthma_control <- function(df = asthma_control_labelled) {
-  df |>
-    mutate(
-      # Recode gina control questions as yes = 1 and no = 0
-      across(
-        contains("gina"),
-        ~ case_when(. == "Yes" ~ 1, . == "No" ~ 0, .default = NA)
-      ),
-      # Calculate gina control score
-      gina_score = pick(
-        gina_day_1,
-        gina_activity_2,
-        gina_night_3,
-        gina_reliever_4
-      ) |>
-        rowSums(na.rm = FALSE),
-      # Classify gina control score
-      gina_ac = case_when(
-        gina_score == 0 ~ "Well Controlled",
-        gina_score <= 2 ~ "Partly Controlled",
-        gina_score <= 4 ~ "Uncontrolled"
-      ) |>
+      bx_name_short = structure(
         factor(
-          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
+          str_trim(str_remove(bx_name, " \\(.*\\)$")),
+          levels = c(
+            "Benralizumab",
+            "Mepolizumab",
+            "Reslizumab",
+            "Dupilumab",
+            "Omalizumab",
+            "Tezepelumab"
+          )
         ),
-      # Classify ACQ score (version of test used is unavailable)
-      acq_ac = case_when(
-        acq_score <= 0.75 ~ "Well Controlled",
-        acq_score < 1.5 ~ "Partly Controlled",
-        acq_score >= 1.5 ~ "Uncontrolled",
-        .default = NA
-      ) |>
-        factor(
-          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
-        ),
-      # Classify ACT score
-      act_ac = case_when(
-        act_score < 16 ~ "Uncontrolled",
-        act_score < 20 ~ "Partly Controlled",
-        act_score >= 20 ~ "Well Controlled",
-        .default = NA
-      ) |>
-        factor(
-          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
-        )
-    )
+        label = "Biologic name"
+      ),
+      bx_type = structure(
+        case_when(
+          bx_name_short %in% c("Mepolizumab", "Reslizumab") ~ "Anti-IL5",
+          bx_name_short %in% c("Benralizumab") ~ "Anti-IL5R",
+          bx_name_short == "Omalizumab" ~ "Anti-IgE",
+          bx_name_short == "Dupilumab" ~ "Anti-IL4Ralpha",
+          bx_name_short == "Tezepelumab" ~ "Anti-TSLP"
+        ) |>
+          factor(
+            levels = c(
+              "Anti-IL5",
+              "Anti-IL5R",
+              "Anti-IL4Ralpha",
+              "Anti-IgE",
+              "Anti-TSLP"
+            ),
+            labels = c(
+              "Anti-IL5",
+              "Anti-IL5R",
+              "Anti-IL4Ralpha",
+              "Anti-IgE",
+              "Anti-TSLP"
+            )
+          ),
+        label = "Biologic class"
+      )
+    ) |>
+    relocate(bx_name_short, bx_type, .after = bx_name) |>
+    rename(bx_start_date = bx_stdate, bx_end_date = bx_endate)
 }
