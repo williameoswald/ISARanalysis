@@ -35,7 +35,7 @@
 #'   otherwise `{med_class_newvar}_df`. Defaults to `FALSE`.
 #'
 #' @details
-#' ## Search window construction
+#' # Search window construction
 #'
 #' The search window is derived from `query_dates` using the column specified
 #' by `search_anchor_date_col` as the index date:
@@ -50,7 +50,7 @@
 #' Always returns a date in the nth month after Date. If the new date would usually
 #' spill over into the n + 1th month, %m+% will return the last day of the nth month.
 #'
-#' ## Classification algorithm
+#' # Classification algorithm
 #'
 #' - If both `med_stdate` and `med_endate` are present: `interval(med_stdate, med_endate)`
 #' - If only `med_stdate` is present (open-ended): `interval(med_stdate, visit_date)`,
