@@ -6,6 +6,9 @@
 \usage{
 clean_asthma_control(df = asthma_control_labelled)
 }
+\arguments{
+\item{df}{character. Name of labelled asthma control dataset.}
+}
 \description{
 Recodes GINA asthma control responses to numeric values to calculate score and
 uses to derive GINA asthma control classification (Well controlled vs
