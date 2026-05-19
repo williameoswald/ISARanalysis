@@ -67,28 +67,25 @@ constructs treatment intervals, and classifies each patient as Yes/No based
 on whether any recorded treatment interval overlaps the search window.
 }
 \details{
-## Search window construction
+*Search window construction*
 
 The search window is derived from `query_dates` using the column specified
 by `search_anchor_date_col` as the index date:
-
-```
-search_start <- anchor_date %m-% months(search_mos)
-search_end   <- anchor_date
-```
-Note - Uses [lubridate::interval] allows search_start > search_end without a problem.#'
+search_start = anchor_date %m-% months(search_mos)
+search_end = anchor_date
+Uses [lubridate::interval] which allows search_start > search_end.
 
 Month arithmetic uses [lubridate::`%m-%`] to handle end-of-month edge cases.
 Always returns a date in the nth month after Date. If the new date would usually
 spill over into the n + 1th month, %m+% will return the last day of the nth month.
 
-## Classification algorithm
+*Classification algorithm*
 
-- If both `med_stdate` and `med_endate` are present: `interval(med_stdate, med_endate)`
-- If only `med_stdate` is present (open-ended): `interval(med_stdate, visit_date)`,
+* If both `med_stdate` and `med_endate` are present: `interval(med_stdate, med_endate)`
+* If only `med_stdate` is present (open-ended): `interval(med_stdate, visit_date)`,
   using the visit date as a conservative imputed end — i.e. the treatment
   was known to be active at least up to this visit.
-- Otherwise: `NA` (no interval can be constructed).
+* Otherwise: `NA` (no interval can be constructed).
 
 Each visit row is then assigned a `search_result`:
 
@@ -156,5 +153,7 @@ purrr::map(
 
 }
 \seealso{
-[lubridate::interval()], [lubridate::int_overlaps()], [lubridate::`%m-%`()]
+[lubridate::interval()]
+[lubridate::int_overlaps()]
+[lubridate::`%m-%`]
 }
