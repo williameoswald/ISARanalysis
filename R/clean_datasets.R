@@ -323,6 +323,111 @@ clean_spirometry <- function(
     )
 }
 
+#' Clean and derive biomarker measures from ISAR standardised biomarkers dataset.
+#'
+#' Reshapes biomarkers dataset to long format with multiple rows per test.
+#' Applies range checks (0 ≤ BEOS ≤ 5000; 0 ≤ FeNO ≤ 300; 0 ≤ IgE ≤ 100000)
+#' to recorded biomarker measures. Flags cases Where multiple results are
+#' recorded for a test on a single date, and allows for three approaches for
+#' reducing these duplicates, either keeping minimum, mean, or maximum value.
+#' Further cleaning steps to drop these duplicates and exclude measures failing
+#' range checks can be specified.
+#'
+#' @param df character. Name of labelled biomarkers dataset.
+#' @param beos_range_low numeric. Lowest plausible value for BEOS range check.
+#' @param beos_range_high numeric. Highest plausible value for BEOS range check.
+#' @param feno_range_low numeric. Lowest plausible value for FeNO range check.
+#' @param feno_range_high numeric. Highest plausible value for FeNO range check.
+#' @param ige_range_low numeric. Lowest plausible value for IgE range check.
+#' @param ige_range_high numeric. Highest plausible value for Ige range check.
+
+#' @importFrom dplyr filter filter_out select distinct mutate across if_else case_when rename_with n
+#' @importFrom tidyr pivot_longer
+#' @importFrom lubridate ymd
+
+#' @export
+clean_biomarkers <- function(
+  df = biomarkers_labelled,
+  beos_range_low = 0,
+  beos_range_high = 5000,
+  feno_range_low = 0,
+  feno_range_high = 300,
+  ige_range_low = 0,
+  ige_range_high = 100000,
+  reduce_function = "max",
+  drop_duplicate = TRUE,
+  drop_rangefail = FALSE
+) {
+  if (!reduce_function %in% c("min", "max", "mean")) {
+    stop('De-duplicating function must be "min", "mean", or "max"')
+  }
+
+  df <- df |>
+    # remove_empty_imputation_fields() |>
+    rename_with(~ str_replace(.x, "_rlt", "_cnt"), contains("feno")) |>
+    pivot_longer(
+      cols = -c(
+        patient_id,
+        visit_id,
+        visit_id_imputed,
+        visit_id_imputed_flag,
+        result_date,
+        result_date_imputed,
+        result_date_imputed_flag
+      ),
+      names_to = c("test", ".value"),
+      names_pattern = "^(.+?)_(cnt|cnt_imputed_flag|cnt_imputed)$"
+    ) |>
+    filter_out(is.na(cnt)) |>
+    rename_with(~ str_replace(.x, "cnt", "result"), contains("cnt")) |>
+    mutate(result_date = ymd(result_date)) |>
+    # Range checks against values specified above
+    mutate(
+      exclude_rangefail = case_when(
+        test == "beos" &
+          (result < beos_range_low | result > beos_range_high) ~ TRUE,
+        test == "feno" &
+          (result < feno_range_low | result > feno_range_high) ~ TRUE,
+        test == "ige" &
+          (result < ige_range_low | result > ige_range_high) ~ TRUE,
+        .default = FALSE
+      ),
+    ) |>
+    mutate(
+      duplicate_result = case_when(
+        n() > 1 ~ TRUE,
+        .default = FALSE
+      ),
+      keep_result = case_when(
+        duplicate_result &
+          reduce_function == "min" &
+          result != min(result, na.rm = TRUE) ~ FALSE,
+        duplicate_result &
+          reduce_function == "mean" &
+          result != mean(result, na.rm = TRUE) ~ FALSE,
+        duplicate_result &
+          reduce_function == "max" &
+          result != max(result, na.rm = TRUE) ~ FALSE,
+        .default = TRUE
+      ),
+      .by = c(patient_id, result_date, test)
+    )
+
+  if (drop_duplicate) {
+    df <- df |>
+      filter(keep_result) |>
+      # Some patients still have identical rows - these can be dropped, keeps first
+      distinct(patient_id, result_date, test, .keep_all = TRUE) |>
+      select(-keep_result, -duplicate_result)
+  }
+
+  if (drop_rangefail) {
+    df <- df |>
+      filter_out(exclude_rangefail) |>
+      select(-exclude_rangefail)
+  }
+}
+
 #' Clean and derive measures from ISAR standardised biologics dataset.
 #'
 #' Creates additional short biologic name variable that excludes product names.
