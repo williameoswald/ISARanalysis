@@ -110,7 +110,9 @@ clean_comorbidities <- function(df = comorbidities_labelled) {
 #' Recodes GINA asthma control responses to numeric values to calculate score and
 #' uses to derive GINA asthma control classification (Well controlled vs
 #' Partly controlled vs Uncontrolled). Derives categorical classifications for
-#' asthma control based on available ACQ and ACT scores.
+#' asthma control based on available ACQ and ACT scores. Results are prioritised
+#' GINA > ACT > ACQ > AIRQ (not included yet). Italy has missing
+#' responses for GINA questions 1 and 4, so prioritise ACT.
 #'
 #' @param df character. Name of labelled asthma control dataset.
 #' @importFrom dplyr filter_out mutate across if_else case_when contains

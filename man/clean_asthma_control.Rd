@@ -13,5 +13,7 @@ clean_asthma_control(df = asthma_control_labelled)
 Recodes GINA asthma control responses to numeric values to calculate score and
 uses to derive GINA asthma control classification (Well controlled vs
 Partly controlled vs Uncontrolled). Derives categorical classifications for
-asthma control based on available ACQ and ACT scores.
+asthma control based on available ACQ and ACT scores. Results are prioritised
+GINA > ACT > ACQ > AIRQ (not included yet). Italy has missing
+responses for GINA questions 1 and 4, so prioritise ACT.
 }
