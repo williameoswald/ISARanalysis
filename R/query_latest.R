@@ -37,7 +37,7 @@
 #' Always returns a date in the nth month after Date. If the new date would usually
 #' spill over into the n + 1th month, \%m+\% will return the last day of the nth month.
 #'
-#' Query will use `spirometry_date` for spirometry and visit date` for
+#' Query will use `spirometry_date` for spirometry and `visit date` for
 #' exacerbations and asthma control. All test and date rows are first filtered
 #' to be \link[lubridate]{\%within\%} search window and then sorted by
 #' descending date (most-recent first).
@@ -108,6 +108,7 @@ query_latest <- function(
   if (search_measure == "ac") {
     keep_vars <- c(
       "patient_id",
+      "visit_id",
       "ac_gap",
       "asthma_control",
       "gina_score",
@@ -121,12 +122,14 @@ query_latest <- function(
   } else if (search_measure == "exac") {
     keep_vars <- c(
       "patient_id",
+      "visit_id",
       "exac_num"
     )
     use_date <- "visit_date"
   } else if (search_measure == "spiro") {
     keep_vars <- c(
       "patient_id",
+      "visit_id",
       "spiro_gap",
       "fev1",
       "fev1_percpred",
