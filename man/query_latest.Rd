@@ -46,12 +46,14 @@ columns specific to each selected `search_measure`.
 Exacerbations:
 \describe{
   \item{`{patient_id}`}{Patient identifier.}
+  \item{`{visit_id}`}{Visit identifier.}
   \item{`{exac_gap}`}{Numeric with months between test and search index date.}
   \item{`{exac_num}`}{Numeric with count of exacerbations within either the past 12 months (baseline, historic) visits or since last visit, as reported at visit.}
 }
 Spirometry (see clean_spirometry function documentation for details):
 \describe{
   \item{`{patient_id}`}{Patient identifier.}
+  \item{`{visit_id}`}{Visit identifier.}
   \item{`{spiro_gap}`}{Numeric with months between test and search index date.}
   \item{`{fev1}`}{Numeric with FEV1 (L)}
   \item{`{fev1_percpred}`}{Numeric with percent predicted FEV1 (\%)}
@@ -62,6 +64,7 @@ Spirometry (see clean_spirometry function documentation for details):
 Asthma control (see clean_asthma_control function documentation for details):
 \describe{
   \item{`{patient_id}`}{Patient identifier.}
+  \item{`{visit_id}`}{Visit identifier.}
   \item{`{ac_gap}`}{Numeric with months between test and search index date.}
   \item{`{asthma_control}`}{Factor with asthma control result}
   \item{`{gina_score}`}{Numeric with calculated GINA score}
@@ -89,7 +92,7 @@ Month arithmetic uses \link[lubridate]{\%m+\%} to handle end-of-month edge cases
 Always returns a date in the nth month after Date. If the new date would usually
 spill over into the n + 1th month, \%m+\% will return the last day of the nth month.
 
-Query will use `spirometry_date` for spirometry and visit date` for
+Query will use `spirometry_date` for spirometry and `visit date` for
 exacerbations and asthma control. All test and date rows are first filtered
 to be \link[lubridate]{\%within\%} search window and then sorted by
 descending date (most-recent first).

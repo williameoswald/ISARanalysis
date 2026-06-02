@@ -51,12 +51,14 @@
 #' Exacerbations:
 #' \describe{
 #'   \item{`{patient_id}`}{Patient identifier.}
+#'   \item{`{visit_id}`}{Visit identifier.}
 #'   \item{`{exac_gap}`}{Numeric with months between test and search index date.}
 #'   \item{`{exac_num}`}{Numeric with count of exacerbations within either the past 12 months (baseline, historic) visits or since last visit, as reported at visit.}
 #' }
 #' Spirometry (see clean_spirometry function documentation for details):
 #' \describe{
 #'   \item{`{patient_id}`}{Patient identifier.}
+#'   \item{`{visit_id}`}{Visit identifier.}
 #'   \item{`{spiro_gap}`}{Numeric with months between test and search index date.}
 #'   \item{`{fev1}`}{Numeric with FEV1 (L)}
 #'   \item{`{fev1_percpred}`}{Numeric with percent predicted FEV1 (\%)}
@@ -67,6 +69,7 @@
 #' Asthma control (see clean_asthma_control function documentation for details):
 #' \describe{
 #'   \item{`{patient_id}`}{Patient identifier.}
+#'   \item{`{visit_id}`}{Visit identifier.}
 #'   \item{`{ac_gap}`}{Numeric with months between test and search index date.}
 #'   \item{`{asthma_control}`}{Factor with asthma control result}
 #'   \item{`{gina_score}`}{Numeric with calculated GINA score}
