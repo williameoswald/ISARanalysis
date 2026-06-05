@@ -453,10 +453,10 @@ clean_biologics <- function(df = biologics_labelled) {
           str_trim(str_remove(bx_name, " \\(.*\\)$")),
           levels = c(
             "Benralizumab",
-            "Mepolizumab",
-            "Reslizumab",
             "Dupilumab",
+            "Mepolizumab",
             "Omalizumab",
+            "Reslizumab",
             "Tezepelumab"
           )
         ),
@@ -472,17 +472,17 @@ clean_biologics <- function(df = biologics_labelled) {
         ) |>
           factor(
             levels = c(
+              "Anti-IgE",
+              "Anti-IL4Ralpha",
               "Anti-IL5",
               "Anti-IL5R",
-              "Anti-IL4Ralpha",
-              "Anti-IgE",
               "Anti-TSLP"
             ),
             labels = c(
+              "Anti-IgE",
+              "Anti-IL4Ralpha",
               "Anti-IL5",
               "Anti-IL5R",
-              "Anti-IL4Ralpha",
-              "Anti-IgE",
               "Anti-TSLP"
             )
           ),
