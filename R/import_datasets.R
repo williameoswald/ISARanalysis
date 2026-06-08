@@ -146,9 +146,8 @@ import_datasets <- function(filename, keep_raw = TRUE) {
   df_raw <- read_csv(
     here(
       datapath,
-      paste0(
-        versiondate
-      ),
+      "datasets",
+      versiondate,
       filename
     ),
     col_types = cols(.default = col_character())
