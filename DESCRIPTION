@@ -1,7 +1,7 @@
 Package: ISARanalysis
 Type: Package
 Title: ISAR research tools
-Version: 0.5.0
+Version: 0.5.1
 Authors@R: c(
     person(
       "William", "Oswald",
