@@ -18,6 +18,9 @@ import_datasets <- function(filename, keep_raw = TRUE) {
   if (!exists("dictionary", envir = .GlobalEnv)) {
     stop(glue::glue("Dataset dictionary not found in parent environment"))
   }
+  if (!exists("versiondate", envir = .GlobalEnv)) {
+    stop(glue::glue("versiondate not found in parent environment"))
+  }
 
   #  Helper function to clean factor levels from excel sheet
   parse_levels <- function(cell_text) {
@@ -151,7 +154,8 @@ import_datasets <- function(filename, keep_raw = TRUE) {
       filename
     ),
     col_types = cols(.default = col_character())
-  )
+  ) |>
+    mutate(version = versiondate)
 
   if (keep_raw) {
     assign(
