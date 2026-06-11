@@ -172,6 +172,7 @@ query_biomarkers <- function(
           result == max(result, na.rm = TRUE) ~ result,
         .default = NA
       ),
+      "{ test_newvar }_date" := date,
       "{ test_newvar }_gap" := interval(date, search_end) / months(1),
       .by = patient_id
     )
@@ -187,7 +188,10 @@ query_biomarkers <- function(
   # Pull patient-level measure
   test_df |>
     filter_out(is.na(.data[[test_newvar]])) |>
-    select(patient_id, any_of(c(test_newvar, test_newvar_gap))) |>
+    select(
+      patient_id,
+      any_of(c(test_newvar, test_newvar_date, test_newvar_gap))
+    ) |>
     # if tied for highest, then takes most recent
     distinct(patient_id, .data[[test_newvar]], .keep_all = TRUE)
 }

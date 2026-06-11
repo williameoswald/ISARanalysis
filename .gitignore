@@ -4,3 +4,4 @@
 .RData
 .Ruserdata
 test_run.R
+inst/doc

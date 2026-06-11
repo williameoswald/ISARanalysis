@@ -132,7 +132,7 @@ query_latest <- function(
   } else if (search_measure == "spiro") {
     keep_vars <- c(
       "patient_id",
-      "visit_id",
+      "spiro_date",
       "spiro_gap",
       "fev1",
       "fev1_percpred",
@@ -144,6 +144,7 @@ query_latest <- function(
   }
 
   newvar_gap <- paste0(str_to_lower(search_measure), "_gap")
+  newvar_date <- paste0(str_to_lower(search_measure), "_date")
 
   query_result_df <- df |>
     rename_with(
@@ -170,18 +171,11 @@ query_latest <- function(
     ) |>
     arrange(patient_id, desc(date)) |>
     mutate(
+      "{ newvar_date }" := date,
       "{ newvar_gap }" := interval(date, search_end) / months(1)
     ) |>
     slice_head(n = 1, by = patient_id) |>
     select(
       all_of(keep_vars)
     )
-
-  if (keep_df) {
-    assign(
-      paste0(search_measure, "_df"),
-      query_result_df,
-      envir = .GlobalEnv
-    )
-  }
 }
