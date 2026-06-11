@@ -1,10 +1,5 @@
 ---
 title: "ISAR master script"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{ISAR master script}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 The following script is for setting up workspace (using RStudio) and importing the ISAR standardised research datasets.
