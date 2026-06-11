@@ -4,7 +4,9 @@ title: "ISAR master script"
 
 The following script is for setting up workspace (using RStudio) and importing the ISAR standardised research datasets.
 
-```{r}
+Includes use of *import_datasets* function for importing list of ISAR standardised datasets and creating new "\_labelled" dataframe objects with variable labels assigned, categorical variables converted to factors with assigned levels, and "YYYY-MM-DD" dates checked and converted to ymd() dates using lubridate package. Any date parsing errors will be reported and summarised in an additional object with "\_date_parse_failures". All these cleaning steps use the "ISAR SRD Data Dictionary v1.0.xlsx" that must be imported as a "dictionary" object before use. Specify filename to import and whether you wish to keep a "\_raw" imported version of dataset without formatting.
+
+```{r isar_master, eval=FALSE}
 # ISAR assembly and analysis ----
 
 # Modifications/Decisions:
