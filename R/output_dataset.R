@@ -26,7 +26,7 @@
 #' @importFrom flextable flextable align fontsize font bold set_table_properties height merge_v valign set_header_labels save_as_docx
 #'
 #' @examples
-#' output_to_stata(
+#' output_dataset(
 #'    bl_biologic,
 #'    export_dictionary = T,
 #'    excel_dictionary = F,
