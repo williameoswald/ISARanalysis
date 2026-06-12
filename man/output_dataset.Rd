@@ -34,7 +34,7 @@ helper function and \link[haven]{labelled}. Then saves dataframe as .dta
 file using \link[haven]{write_dta}. The default is Stata version 14.
 }
 \examples{
-output_to_stata(
+output_dataset(
    bl_biologic,
    export_dictionary = T,
    excel_dictionary = F,
