@@ -105,13 +105,13 @@ query_latest <- function(
   query_dates,
   search_measure,
   search_anchor_date_col = "index_date",
-  search_mos = 12,
-  keep_df = FALSE
+  search_mos = 12
 ) {
   if (search_measure == "ac") {
     keep_vars <- c(
       "patient_id",
       "visit_id",
+      "ac_date",
       "ac_gap",
       "asthma_control",
       "gina_score",
@@ -126,14 +126,16 @@ query_latest <- function(
     keep_vars <- c(
       "patient_id",
       "visit_id",
+      "exac_date",
+      "exac_gap",
       "exac_num"
     )
     use_date <- "visit_date"
-  } else if (search_measure == "spiro") {
+  } else if (search_measure == "spirometry") {
     keep_vars <- c(
       "patient_id",
-      "spiro_date",
-      "spiro_gap",
+      "spirometry_date",
+      "spirometry_gap",
       "fev1",
       "fev1_percpred",
       "fev1_percpred_cat",
