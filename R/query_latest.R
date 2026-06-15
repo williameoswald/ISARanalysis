@@ -48,15 +48,15 @@
 #' Exacerbations:
 #' \describe{
 #'   \item{`{patient_id}`}{Patient identifier.}
-#'   \item{`{visit_id}`}{Visit identifier.}
+#'   \item{`{exac_visit_id}`}{Visit identifier.}
 #'   \item{`{exac_gap}`}{Numeric with months between test and search index date.}
 #'   \item{`{exac_num}`}{Numeric with count of exacerbations within either the past 12 months (baseline, historic) visits or since last visit, as reported at visit.}
 #' }
 #' Spirometry (see clean_spirometry function documentation for details):
 #' \describe{
 #'   \item{`{patient_id}`}{Patient identifier.}
-#'   \item{`{visit_id}`}{Visit identifier.}
-#'   \item{`{spiro_gap}`}{Numeric with months between test and search index date.}
+#'   \item{`{spirometry_date}`}{Visit identifier.}
+#'   \item{`{spirometry_gap}`}{Numeric with months between test and search index date.}
 #'   \item{`{fev1}`}{Numeric with FEV1 (L)}
 #'   \item{`{fev1_percpred}`}{Numeric with percent predicted FEV1 (\%)}
 #'   \item{`{fev1_percpred_cat}`}{Factor with percent predicted FEV1 categorisation (<80\%; ≥80\%)}
@@ -66,7 +66,7 @@
 #' Asthma control (see clean_asthma_control function documentation for details):
 #' \describe{
 #'   \item{`{patient_id}`}{Patient identifier.}
-#'   \item{`{visit_id}`}{Visit identifier.}
+#'   \item{`{ac_visit_id}`}{Visit identifier.}
 #'   \item{`{ac_gap}`}{Numeric with months between test and search index date.}
 #'   \item{`{asthma_control}`}{Factor with asthma control result}
 #'   \item{`{gina_score}`}{Numeric with calculated GINA score}
@@ -107,7 +107,7 @@ query_latest <- function(
   if (search_measure == "ac") {
     keep_vars <- c(
       "patient_id",
-      "visit_id",
+      "ac_visit_id",
       "ac_date",
       "ac_gap",
       "asthma_control",
@@ -122,7 +122,7 @@ query_latest <- function(
   } else if (search_measure == "exac") {
     keep_vars <- c(
       "patient_id",
-      "visit_id",
+      "exac_visit_id",
       "exac_date",
       "exac_gap",
       "exac_num"
@@ -144,6 +144,7 @@ query_latest <- function(
 
   newvar_gap <- paste0(str_to_lower(search_measure), "_gap")
   newvar_date <- paste0(str_to_lower(search_measure), "_date")
+  newvar_visit_id <- paste0(str_to_lower(search_measure), "_visit_id")
 
   query_result_df <- df |>
     rename_with(
@@ -171,7 +172,8 @@ query_latest <- function(
     arrange(patient_id, desc(date)) |>
     mutate(
       "{ newvar_date }" := date,
-      "{ newvar_gap }" := interval(date, search_end) / months(1)
+      "{ newvar_gap }" := interval(date, search_end) / months(1),
+      "{ newvar_visit_id }" := visit_id
     ) |>
     slice_head(n = 1, by = patient_id) |>
     select(

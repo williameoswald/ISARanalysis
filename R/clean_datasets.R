@@ -127,13 +127,16 @@ clean_asthma_control <- function(df = asthma_control_labelled) {
         ~ case_when(. == "Yes" ~ 1, . == "No" ~ 0, .default = NA)
       ),
       # Calculate gina control score
-      gina_score = pick(
-        gina_day_1,
-        gina_activity_2,
-        gina_night_3,
-        gina_reliever_4
-      ) |>
-        rowSums(na.rm = FALSE),
+      gina_score = structure(
+        pick(
+          gina_day_1,
+          gina_activity_2,
+          gina_night_3,
+          gina_reliever_4
+        ) |>
+          rowSums(na.rm = FALSE),
+        label = "GINA symptom control score"
+      ),
       # Classify gina control score
       gina_ac = case_when(
         gina_score == 0 ~ "Well Controlled",

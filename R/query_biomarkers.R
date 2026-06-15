@@ -173,6 +173,15 @@ query_biomarkers <- function(
       .by = patient_id
     )
 
+  attr(test_df[[test_newvar]], "label") <- paste0(
+    str_to_title(result_select),
+    " ",
+    str_to_upper(test_select),
+    " in past ",
+    search_mos,
+    " months"
+  )
+
   if (keep_df) {
     assign(
       paste0(test_newvar, "_df"),
