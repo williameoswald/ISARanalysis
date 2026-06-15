@@ -66,12 +66,14 @@
 #' \describe{
 #'   \item{`patient_id`}{Patient identifier.}
 #'   \item{`{test_newvar}`}{Numeric with single specified test results.}
+#'   \item{`{test_newvar_date}`}{Date with test date.}
 #'   \item{`{test_newvar_gap}`}{Numeric with months between test and search index date.}
 #' }
 #'
 #' @importFrom dplyr filter filter_out select distinct inner_join mutate bind_rows arrange
 #' @importFrom lubridate interval int_overlaps `%m-%`
 #' @importFrom stringr str_to_lower str_detect
+#' @importFrom tidyselect contains
 #'
 #' @examples
 #' # Basic usage with a single anchor date column
@@ -132,12 +134,6 @@ query_biomarkers <- function(
     "_",
     result_select
   )
-  test_newvar_gap <- paste0(
-    str_to_lower(test_select),
-    "_",
-    result_select,
-    "_gap"
-  )
 
   test_df <- df |>
     filter(test == test_select) |>
@@ -190,7 +186,8 @@ query_biomarkers <- function(
     filter_out(is.na(.data[[test_newvar]])) |>
     select(
       patient_id,
-      any_of(c(test_newvar, test_newvar_date, test_newvar_gap))
+      contains("latest"),
+      contains("highest")
     ) |>
     # if tied for highest, then takes most recent
     distinct(patient_id, .data[[test_newvar]], .keep_all = TRUE)

@@ -21,9 +21,6 @@
 #'   date. Negative values look forward. Month arithmetic uses
 #'   [lubridate::%m-%][lubridate::`%m-%`] to handle end-of-month edge cases.
 #'   Defaults to `12`.
-#' @param keep_df Logical. If `TRUE`, assigns the full test and date-specific
-#'  working data frame to the global environment for inspection. The assigned
-#'  name is `{search_measure}_df`. Defaults to `FALSE`.
 #'
 #' @details
 #'
