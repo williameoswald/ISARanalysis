@@ -9,8 +9,7 @@ query_latest(
   query_dates,
   search_measure,
   search_anchor_date_col = "index_date",
-  search_mos = 12,
-  keep_df = FALSE
+  search_mos = 12
 )
 }
 \arguments{
@@ -34,10 +33,6 @@ from `anchor - search_mos months` to `anchor` (inclusive). Defaults to
 date. Negative values look forward. Month arithmetic uses
 [lubridate::%m-%][lubridate::`%m-%`] to handle end-of-month edge cases.
 Defaults to `12`.}
-
-\item{keep_df}{Logical. If `TRUE`, assigns the full test and date-specific
-working data frame to the global environment for inspection. The assigned
-name is `{search_measure}_df`. Defaults to `FALSE`.}
 }
 \value{
 A filtered tibble with one row per patient containing result
@@ -46,15 +41,15 @@ columns specific to each selected `search_measure`.
 Exacerbations:
 \describe{
   \item{`{patient_id}`}{Patient identifier.}
-  \item{`{visit_id}`}{Visit identifier.}
+  \item{`{exac_visit_id}`}{Visit identifier.}
   \item{`{exac_gap}`}{Numeric with months between test and search index date.}
   \item{`{exac_num}`}{Numeric with count of exacerbations within either the past 12 months (baseline, historic) visits or since last visit, as reported at visit.}
 }
 Spirometry (see clean_spirometry function documentation for details):
 \describe{
   \item{`{patient_id}`}{Patient identifier.}
-  \item{`{visit_id}`}{Visit identifier.}
-  \item{`{spiro_gap}`}{Numeric with months between test and search index date.}
+  \item{`{spirometry_date}`}{Visit identifier.}
+  \item{`{spirometry_gap}`}{Numeric with months between test and search index date.}
   \item{`{fev1}`}{Numeric with FEV1 (L)}
   \item{`{fev1_percpred}`}{Numeric with percent predicted FEV1 (\%)}
   \item{`{fev1_percpred_cat}`}{Factor with percent predicted FEV1 categorisation (<80\%; ≥80\%)}
@@ -64,7 +59,7 @@ Spirometry (see clean_spirometry function documentation for details):
 Asthma control (see clean_asthma_control function documentation for details):
 \describe{
   \item{`{patient_id}`}{Patient identifier.}
-  \item{`{visit_id}`}{Visit identifier.}
+  \item{`{ac_visit_id}`}{Visit identifier.}
   \item{`{ac_gap}`}{Numeric with months between test and search index date.}
   \item{`{asthma_control}`}{Factor with asthma control result}
   \item{`{gina_score}`}{Numeric with calculated GINA score}

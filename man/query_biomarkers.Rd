@@ -55,6 +55,7 @@ results are tied for maximum or same results):
 \describe{
   \item{`patient_id`}{Patient identifier.}
   \item{`{test_newvar}`}{Numeric with single specified test results.}
+  \item{`{test_newvar_date}`}{Date with test date.}
   \item{`{test_newvar_gap}`}{Numeric with months between test and search index date.}
 }
 }
