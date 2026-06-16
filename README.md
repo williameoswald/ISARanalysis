@@ -131,9 +131,12 @@ Creates additional short biologic name variable that excludes product names. Cre
 
 ### Example workflow
 
-```{r, eval=FALSE}  # Cleaning function already refers to spirometry_labelled dataframe spirometry_clean <- clean_spirometry() |>    remove_empty_imputation_fields()}
-```
+```{r, eval=FALSE}
+# Cleaning function already refers to spirometry_labelled dataframe 
+spirometry_clean <- clean_spirometry() |>    
+  remove_empty_imputation_fields()
 
+```
 ## Saving datasets
 
 Use `output_data` function to save object as .Rdata or Stata .dta (version 14) and export data dictionary in Microsoft Word or Excel.
