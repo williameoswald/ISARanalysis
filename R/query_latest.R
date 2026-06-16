@@ -11,7 +11,7 @@
 #'   present in `query_dates` but absent from `df` (i.e. no medication records)
 #'   are dropped.
 #' @param search_measure Character scalar. Specify whether searching for exacerbation
-#'    counts with `"exac"`, spirometry results with `"spiro"`, or asthma control
+#'    counts with `"exac"`, spirometry results with `"spirometry"`, or asthma control
 #'    results with `"ac"`.
 #' @param search_anchor_date_col Character scalar. Name of the date column in
 #'   `query_dates` to use as the anchor for the search window. The window runs
