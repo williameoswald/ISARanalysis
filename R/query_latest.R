@@ -142,10 +142,6 @@ query_latest <- function(
     use_date <- "spirometry_date"
   }
 
-  newvar_gap <- paste0(str_to_lower(search_measure), "_gap")
-  newvar_date <- paste0(str_to_lower(search_measure), "_date")
-  newvar_visit_id <- paste0(str_to_lower(search_measure), "_visit_id")
-
   query_result_df <- df |>
     rename_with(
       ~ str_replace(.x, "visit_|spirometry_", ""),
@@ -171,9 +167,9 @@ query_latest <- function(
     ) |>
     arrange(patient_id, desc(date)) |>
     mutate(
-      "{ newvar_date }" := date,
-      "{ newvar_gap }" := interval(date, search_end) / months(1),
-      "{ newvar_visit_id }" := visit_id
+      "{ search_measure }_date" := date,
+      "{ search_measure }_gap" := interval(date, search_end) / months(1),
+      "{ search_measure }_visit_id" := visit_id
     ) |>
     slice_head(n = 1, by = patient_id) |>
     select(
