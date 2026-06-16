@@ -1,0 +1,211 @@
+#' Query ISAR standardised datasets to get most recent results within period of time
+#'
+#' Identifies exacerbation counts and spirometry and asthma control results
+#' within a defined time window preceding (or following) an anchor date.
+#' The function joins date or visit specific results against patient-level query
+#' dates and returns the closest results within the search window, specified
+#' using months in which to look backwards or forwards.
+#'
+#' @param df A data frame of exacerbations, spirometry, or asthma control records.
+#' @param query_dates A tibble with at minimum a `patient_id` column and a date
+#'   column matching `search_anchor_date_col`. One row per patient. Patients
+#'   present in `query_dates` but absent from `df` (i.e. no medication records)
+#'   are dropped.
+#' @param search_measure Character scalar. Specify whether searching for exacerbation
+#'    counts with `"exac"`, spirometry results with `"spirometry"`, or asthma control
+#'    results with `"ac"`.
+#' @param search_anchor_date_col Character scalar. Name of the date column in
+#'   `query_dates` to use as the anchor for the search window. The window runs
+#'   from `anchor - search_mos months` to `anchor` (inclusive). Defaults to
+#'   `"index_date"`.
+#' @param search_backward_mos Integer. Number of months to look back from the anchor
+#'   date. Month arithmetic uses [lubridate::%m-%][lubridate::`%m-%`] to handle
+#'   end-of-month edge cases. Defaults to `6`. For periods of less than a month
+#'   can enter 0.5, etc. and function will convert to weeks.
+#' @param search_forward_mos Integer. Number of months to look forward from the anchor
+#'   date. Month arithmetic uses [lubridate::%m+%][lubridate::`%m+%`] to handle
+#'   end-of-month edge cases. Defaults to `12`. For periods of less than a month
+#'   can enter 0.5, etc. and function will convert to weeks.
+#'
+#' @details
+#'
+#' The search window is derived from `query_dates` using the column specified
+#' by `search_anchor_date_col` as the index date:
+#' search_start = anchor_date %m-% search_backward and search_end = anchor_date %m+% search_forward
+#'
+#' Month arithmetic uses \link[lubridate]{\%m+\%} to handle end-of-month edge cases.
+#' Always returns a date in the nth month after Date. If the new date would usually
+#' spill over into the n + 1th month, \link[lubridate]{\%m+\%} will return the
+#' last day of the nth month.
+#'
+#' Query will use `spirometry_date` for spirometry and `visit date` for
+#' exacerbations and asthma control. All test and date rows are first filtered
+#' to be \link[lubridate]{\%within\%} search window and then the smallest
+#' `{search_measure}_gap` with months between selected test date and
+#' `search_anchor_date_col` is returned using \link[dplyr]{slice_min}
+#' with no ties allowed.
+#'
+#' @return A filtered tibble with one row per patient containing result
+#' columns specific to each selected `search_measure`.
+#'
+#' Exacerbations:
+#' \describe{
+#'   \item{`{patient_id}`}{Patient identifier.}
+#'   \item{`{exac_visit_id}`}{Visit identifier.}
+#'   \item{`{exac_gap}`}{Numeric with months between test and search index date.}
+#'   \item{`{exac_num}`}{Numeric with count of exacerbations within either the past 12 months (baseline, historic) visits or since last visit, as reported at visit.}
+#' }
+#' Spirometry (see clean_spirometry function documentation for details):
+#' \describe{
+#'   \item{`{patient_id}`}{Patient identifier.}
+#'   \item{`{spirometry_date}`}{Visit identifier.}
+#'   \item{`{spirometry_gap}`}{Numeric with months between test and search index date.}
+#'   \item{`{fev1}`}{Numeric with FEV1 (L)}
+#'   \item{`{fev1_percpred}`}{Numeric with percent predicted FEV1 (\%)}
+#'   \item{`{fev1_percpred_cat}`}{Factor with percent predicted FEV1 categorisation (<80\%; ≥80\%)}
+#'   \item{`{fev1_fvc_ratio}`}{Numeric with FEV1/FVC ratio}
+#'   \item{`{fev1_fvc_ratio_cat}`}{Factor with FEV1/FVC ratio categorisation (<0.70; ≥0.70)}
+#' }
+#' Asthma control (see clean_asthma_control function documentation for details):
+#' \describe{
+#'   \item{`{patient_id}`}{Patient identifier.}
+#'   \item{`{ac_visit_id}`}{Visit identifier.}
+#'   \item{`{ac_gap}`}{Numeric with months between test and search index date.}
+#'   \item{`{asthma_control}`}{Factor with asthma control result}
+#'   \item{`{gina_score}`}{Numeric with calculated GINA score}
+#'   \item{`{gina_ac}`}{Factor with control classification result for GINA score}
+#'   \item{`{act_score}`}{Numeric with recorded ACT score}
+#'   \item{`{act_ac}`}{Factor with control classification result for ACT score}
+#'   \item{`{acq_score}`}{Numeric with recorded ACQ score}
+#'   \item{`{acq_ac}`}{Factor with control classification result for ACQ score}
+#' }
+#'
+#' @importFrom dplyr filter filter_out select distinct inner_join mutate bind_rows arrange slice_min
+#' @importFrom tidyselect all_of any_of
+#' @importFrom lubridate interval int_overlaps `%m-%`
+#' @importFrom stringr str_to_lower str_detect
+#'
+#' @examples
+#' # Basic usage with a single anchor date column
+#' bl_exac <- query_closest(
+#'   df = exacerbations_labelled |>
+#'     remove_empty_imputation_fields(),
+#'   query_dates = query_dates,
+#'   search_measure = "exac",
+#'   search_anchor_date_col = "bx_start_date",
+#'   search_backward_mos = 1,
+#'   search_forward_mos = 1
+#' ) |>
+#'  dplyr::rename_with(.cols = -c("patient_id"), ~ paste0(., "_bl"))
+#'
+#' @export
+query_closest <- function(
+  df,
+  query_dates,
+  search_measure,
+  search_anchor_date_col = "index_date",
+  search_backward_mos = 6,
+  search_forward_mos = 6
+) {
+  if (search_measure == "ac") {
+    keep_vars <- c(
+      "patient_id",
+      "ac_visit_id",
+      "ac_date",
+      "ac_gap",
+      "asthma_control",
+      "gina_score",
+      "gina_ac",
+      "act_score",
+      "act_ac",
+      "acq_score",
+      "acq_ac"
+    )
+    use_date <- "visit_date"
+  } else if (search_measure == "exac") {
+    keep_vars <- c(
+      "patient_id",
+      "exac_visit_id",
+      "exac_date",
+      "exac_gap",
+      "exac_num"
+    )
+    use_date <- "visit_date"
+  } else if (search_measure == "spirometry") {
+    keep_vars <- c(
+      "patient_id",
+      "spirometry_date",
+      "spirometry_gap",
+      "fev1",
+      "fev1_percpred",
+      "fev1_percpred_cat",
+      "fev1_fvc_ratio",
+      "fev1_fvc_ratio_cat"
+    )
+    use_date <- "spirometry_date"
+  }
+
+  if (search_forward_mos < 1) {
+    period <- "weeks"
+    search_forward <- weeks(search_forward_mos * 4)
+  } else {
+    period <- "months"
+    search_forward <- months(search_forward_mos)
+  }
+  if (search_backward_mos < 1) {
+    period <- "weeks"
+    search_backward <- weeks(search_backward_mos * 4)
+  } else {
+    period <- "months"
+    search_backward <- months(search_backward_mos)
+  }
+
+  print(paste0("Searching ", search_backward, " ", period, " backward"))
+  print(paste0("Searching ", search_forward, " ", period, " forward"))
+
+  gapname <- paste0(search_measure, "_gap")
+
+  query_result_df <- df |>
+    rename_with(
+      ~ str_replace(.x, "visit_|spirometry_", ""),
+      .cols = any_of(use_date)
+    ) |>
+    inner_join(
+      query_dates |>
+        distinct() |>
+        mutate(
+          # https://lubridate.tidyverse.org/reference/mplus.html
+          search_start = .data[[search_anchor_date_col]] %m-%
+            search_backward,
+          search_end = .data[[search_anchor_date_col]] %m+%
+            search_forward,
+          search_interval = interval(search_start, search_end)
+        ) |>
+        select(patient_id, {{ search_anchor_date_col }}, contains("search_")),
+      by = join_by(patient_id),
+      relationship = "many-to-one"
+    ) |>
+    # Test results within search interval
+    filter(
+      date %within% search_interval
+    ) |>
+    mutate(
+      "{ search_measure }_date" := date,
+      "{ search_measure }_gap" := interval(
+        date,
+        .data[[search_anchor_date_col]]
+      ) /
+        months(1),
+      "{ search_measure }_visit_id" := visit_id
+    ) |>
+    slice_min(
+      abs(.data[[gapname]]),
+      by = patient_id,
+      with_ties = FALSE,
+      n = 1
+    ) |>
+    select(
+      all_of(keep_vars),
+      {{ search_anchor_date_col }}
+    )
+}
