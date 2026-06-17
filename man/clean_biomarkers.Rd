@@ -11,7 +11,7 @@ clean_biomarkers(
   feno_range_low = 0,
   feno_range_high = 300,
   ige_range_low = 0,
-  ige_range_high = 100000,
+  ige_range_high = 1e+05,
   reduce_function = "max",
   drop_duplicate = TRUE,
   drop_rangefail = FALSE
