@@ -432,38 +432,6 @@ clean_spirometry <- function(
         !is.na(pre_fvc) & !pre_fvc_exclude ~ "pre",
         .default = NA_character_
       ),
-      # Create single percent predicted measure for baseline and longitudinal description
-      fev1_percpred = structure(
-        case_when(
-          pre_fev1_exclude & post_fev1_exclude ~ NA,
-          !is.na(percpred_post_fev1) & !post_fev1_exclude ~ percpred_post_fev1,
-          !is.na(percpred_post_fev1) &
-            post_fev1_exclude &
-            !pre_fev1_exclude ~ percpred_pre_fev1,
-          !is.na(percpred_pre_fev1) & !pre_fev1_exclude ~ percpred_pre_fev1,
-          .default = NA
-        ),
-        label = "percent predicted FEV1 (%)"
-      ),
-      fev1_percpred_flag = case_when(
-        pre_fev1_exclude & post_fev1_exclude ~ "none",
-        !is.na(percpred_post_fev1) & !post_fev1_exclude ~ "post",
-        !is.na(percpred_post_fev1) &
-          post_fev1_exclude &
-          !pre_fev1_exclude ~ "pre",
-        !is.na(percpred_pre_fev1) & !pre_fev1_exclude ~ "pre",
-        .default = NA_character_
-      ),
-      # Create categorical percent predicted measure for baseline and longitudinal description
-      fev1_percpred_cat = structure(
-        case_when(
-          fev1_percpred < 80 ~ "<80%",
-          fev1_percpred >= 80 ~ "≥80%",
-          .default = NA
-        ) |>
-          factor(levels = c("<80%", "≥80%")),
-        label = "percent predicted FEV1 (%)"
-      ),
       # Calculate ratio measure for baseline and longitudinal description
       fev1_fvc_ratio = structure(
         fev1 / fvc,
