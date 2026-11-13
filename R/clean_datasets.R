@@ -119,53 +119,207 @@ clean_comorbidities <- function(df = comorbidities_labelled) {
 #'
 #' @export
 clean_asthma_control <- function(df = asthma_control_labelled) {
+  gina_vars <- c(
+    "gina_day_1",
+    "gina_activity_2",
+    "gina_night_3",
+    "gina_reliever_4"
+  )
+  control_levels <- c("Uncontrolled", "Partly Controlled", "Well Controlled")
+  source_labels <- c(gina_ac = "GINA", act_ac = "ACT", acq_ac = "ACQ")
+
+  has_gina <- all(gina_vars %in% names(df))
+  has_act <- "act_score" %in% names(df)
+  has_acq <- "acq_score" %in% names(df)
+
+  if (!any(has_gina, has_act, has_acq)) {
+    warning(
+      "Asthma control variables not found (need all four GINA items, act_score, or acq_score). Returning data unchanged.",
+      call. = FALSE
+    )
+    return(df)
+  }
+  if (!"country" %in% names(df)) {
+    warning(
+      "Country variable not found. Returning data unchanged.",
+      call. = FALSE
+    )
+    return(df)
+  }
+
+  # GINA: requires all four items
+  if (has_gina) {
+    df <- df |>
+      mutate(
+        # Recode gina control questions as yes = 1 and no = 0
+        across(
+          all_of(gina_vars),
+          ~ case_when(
+            . == "Yes" ~ 1,
+            . == "1" ~ 1,
+            . == "No" ~ 0,
+            . == "2" ~ 0,
+            .default = NA
+          )
+        ),
+        # Calculate gina control score
+        gina_score = structure(
+          rowSums(pick(all_of(gina_vars)), na.rm = FALSE),
+          label = "GINA symptom control score"
+        ),
+        # Range check
+        gina_score_rangefail = gina_score < 0 | gina_score > 4,
+        # Classify gina control score
+        gina_ac = structure(
+          case_when(
+            gina_score_rangefail ~ NA,
+            gina_score == 0 ~ "Well Controlled",
+            gina_score <= 2 ~ "Partly Controlled",
+            gina_score <= 4 ~ "Uncontrolled"
+          ) |>
+            factor(levels = control_levels),
+          label = "Asthma control, GINA"
+        )
+      )
+  } else if (any(gina_vars %in% names(df))) {
+    message(
+      "GINA control not derived: missing ",
+      paste(setdiff(gina_vars, names(df)), collapse = ", ")
+    )
+  }
+
+  # ACT
+  if (has_act) {
+    df <- df |>
+      mutate(
+        act_score = structure(
+          as.numeric(act_score),
+          label = "ACT score"
+        ),
+        # Range check
+        act_score_rangefail = act_score < 5 | act_score > 25,
+        act_ac = structure(
+          case_when(
+            act_score_rangefail ~ NA,
+            act_score < 16 ~ "Uncontrolled",
+            act_score < 20 ~ "Partly Controlled",
+            act_score >= 20 ~ "Well Controlled",
+            .default = NA
+          ) |>
+            factor(levels = control_levels),
+          label = "Asthma control, ACT"
+        )
+      )
+  }
+
+  # ACQ (version of test used is unavailable)
+  if (has_acq) {
+    df <- df |>
+      mutate(
+        acq_score = structure(
+          as.numeric(acq_score),
+          label = "ACQ score"
+        ),
+        # Range check, exclude ACQ scores outside range, 0 - 6, ACQ is mean of 7 questions with 7-point scale (0 = no impairment; 6 = maximum impairment)
+        acq_score_rangefail = acq_score < 0 | acq_score > 6,
+        acq_ac = structure(
+          case_when(
+            acq_score_rangefail ~ NA,
+            acq_score <= 0.75 ~ "Well Controlled",
+            acq_score < 1.5 ~ "Partly Controlled",
+            acq_score >= 1.5 ~ "Uncontrolled",
+            .default = NA
+          ) |>
+            factor(levels = control_levels),
+          label = "Asthma control, ACQ"
+        ),
+        acq_version = structure(
+          case_when(
+            is.na(acq_score) ~ NA,
+            country == "UK" & str_detect(visit_id, "baseline") ~ "ACQ7",
+            country == "UK" & str_detect(visit_id, "followup") ~ "ACQ6",
+            country %in% c("Poland", "Mexico", "Brazil", "Italy") ~ "ACQ7",
+            country %in% c("Belgium", "Denmark") ~ "ACQ6",
+            !is.na(acq_score) ~ as.character("Unspecified ACQ")
+          ),
+          label = "ACQ version"
+        ),
+      )
+  }
+
+  # Combined control: gina_ac > act_ac > acq_ac (first non-missing, per row)
+  priority <- intersect(names(source_labels), names(df))
+
+  df <- df |>
+    mutate(
+      # reduce same as coalesce(coalesce(gina_ac, act_ac), acq_ac) but won't fail if column not present
+      asthma_control = structure(
+        reduce(pick(all_of(priority)), coalesce) |>
+          factor(levels = control_levels),
+        label = "Asthma control"
+      ),
+      # identify source of control measure selected
+      asthma_control_source = pick(all_of(priority)) |>
+        imap(\(x, nm) {
+          if_else(is.na(x), NA_character_, source_labels[[nm]])
+        }) |>
+        reduce(coalesce)
+    )
+  source_levels <- unname(source_labels[priority])
+
+  if (has_acq) {
+    df <- df |>
+      mutate(
+        asthma_control_source = if_else(
+          asthma_control_source == "ACQ",
+          acq_version,
+          asthma_control_source
+        )
+      )
+    source_levels <- c(
+      setdiff(source_levels, "ACQ"),
+      c("ACQ7", "ACQ6", "Unspecified ACQ")
+    )
+  }
+
   df |>
     mutate(
-      # Recode gina control questions as yes = 1 and no = 0
-      across(
-        contains("gina"),
-        ~ case_when(. == "Yes" ~ 1, . == "No" ~ 0, .default = NA)
-      ),
-      # Calculate gina control score
-      gina_score = structure(
-        pick(
-          gina_day_1,
-          gina_activity_2,
-          gina_night_3,
-          gina_reliever_4
-        ) |>
-          rowSums(na.rm = FALSE),
-        label = "GINA symptom control score"
-      ),
-      # Classify gina control score
-      gina_ac = case_when(
-        gina_score == 0 ~ "Well Controlled",
-        gina_score <= 2 ~ "Partly Controlled",
-        gina_score <= 4 ~ "Uncontrolled"
-      ) |>
-        factor(
-          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
-        ),
-      # Classify ACQ score (version of test used is unavailable)
-      acq_ac = case_when(
-        acq_score <= 0.75 ~ "Well Controlled",
-        acq_score < 1.5 ~ "Partly Controlled",
-        acq_score >= 1.5 ~ "Uncontrolled",
-        .default = NA
-      ) |>
-        factor(
-          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
-        ),
-      # Classify ACT score
-      act_ac = case_when(
-        act_score < 16 ~ "Uncontrolled",
-        act_score < 20 ~ "Partly Controlled",
-        act_score >= 20 ~ "Well Controlled",
-        .default = NA
-      ) |>
-        factor(
-          levels = c("Uncontrolled", "Partly Controlled", "Well Controlled")
+      asthma_control_source = structure(
+        factor(asthma_control_source, levels = source_levels),
+        label = "Asthma control source"
+      )
+    ) |>
+    select(
+      where(\(x) any(!is.na(x))),
+      -country
+    ) |>
+    relocate(
+      patient_id,
+      uidpatvis,
+      visit_id,
+      visit_date,
+      any_of(
+        c(
+          "gina_day_1",
+          "gina_activity_2",
+          "gina_night_3",
+          "gina_reliever_4",
+          "gina_lf_5",
+          "gina_score",
+          "gina_score_rangefail",
+          "gina_ac",
+          "act_score",
+          "act_score_rangefail",
+          "act_ac",
+          "acq_score",
+          "acq_score_rangefail",
+          "acq_version",
+          "acq_ac",
+          "asthma_control",
+          "asthma_control_source"
         )
+      ),
+      everything()
     )
 }
 
