@@ -328,9 +328,8 @@ clean_asthma_control <- function(df = asthma_control_labelled) {
 #' Applies range checks and plausibility checks (FEV1 >= FVC) to pre- and
 #' post-bronchodilator spirometry measures. Where post-bronchodilator measures
 #' are available at every timepoint for a patient, they are prioritised over
-#' pre-bronchodilator measures. Derives single composite FEV1, FVC, FEV1/FVC ratio,
-#' and percent predicted FEV1 measures, along with categorical classifications
-#' for FEV1 percent predicted (<80% vs ≥80%) and FEV1/FVC ratio (<0.70 vs ≥0.70).
+#' pre-bronchodilator measures. Derives single composite FEV1, FVC, and FEV1/FVC ratio,
+#' along with categorical classifications for FEV1/FVC ratio (<0.70 vs ≥0.70).
 #'
 #' @param df character. Name of labelled spirometry dataset.
 #' @param fev1_range_low numeric. Lowest plausible value for FEV1 range check.
@@ -431,38 +430,6 @@ clean_spirometry <- function(
         !is.na(post_fvc) & post_fvc_exclude & !pre_fvc_exclude ~ "pre",
         !is.na(pre_fvc) & !pre_fvc_exclude ~ "pre",
         .default = NA_character_
-      ),
-      # Create single percent predicted measure for baseline and longitudinal description
-      fev1_percpred = structure(
-        case_when(
-          pre_fev1_exclude & post_fev1_exclude ~ NA,
-          !is.na(percpred_post_fev1) & !post_fev1_exclude ~ percpred_post_fev1,
-          !is.na(percpred_post_fev1) &
-            post_fev1_exclude &
-            !pre_fev1_exclude ~ percpred_pre_fev1,
-          !is.na(percpred_pre_fev1) & !pre_fev1_exclude ~ percpred_pre_fev1,
-          .default = NA
-        ),
-        label = "percent predicted FEV1 (%)"
-      ),
-      fev1_percpred_flag = case_when(
-        pre_fev1_exclude & post_fev1_exclude ~ "none",
-        !is.na(percpred_post_fev1) & !post_fev1_exclude ~ "post",
-        !is.na(percpred_post_fev1) &
-          post_fev1_exclude &
-          !pre_fev1_exclude ~ "pre",
-        !is.na(percpred_pre_fev1) & !pre_fev1_exclude ~ "pre",
-        .default = NA_character_
-      ),
-      # Create categorical percent predicted measure for baseline and longitudinal description
-      fev1_percpred_cat = structure(
-        case_when(
-          fev1_percpred < 80 ~ "<80%",
-          fev1_percpred >= 80 ~ "≥80%",
-          .default = NA
-        ) |>
-          factor(levels = c("<80%", "≥80%")),
-        label = "percent predicted FEV1 (%)"
       ),
       # Calculate ratio measure for baseline and longitudinal description
       fev1_fvc_ratio = structure(
