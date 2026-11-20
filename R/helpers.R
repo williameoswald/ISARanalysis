@@ -147,3 +147,50 @@ calculate_eosinophilic_grade <- function(df) {
       )
     )
 }
+
+clean_smoking <- function(df) {
+  # Check where duplicated visit dates
+  # Check: df |> count(smoke, smoking_status_cln)
+
+  # Fill NA with previous,
+  # Ex-smoker > Current = ok, keep current
+  # Ex-smoker > Never = ignore never, bring ex forward
+  # Ex-smoker > Ex-smoker = ok, keep ex-smoker
+  # Current > Current = ok
+  # Current > Ex_smoker = ok
+  # Current > Never = ignore never, bring current forward
+  # Never smoker > Current = ok
+  # Never smoker > Ex-smoker = never changes to ex-smoker, except never>current>ex, current left alone
+  # Never smoker > Never = ok
+
+  df |>
+    mutate(smoke = as.character(smoke)) |>
+    arrange(patient_id, visit_date) |>
+    mutate(
+      prior_smoked = dplyr::lag(
+        cumany(smoke %in% c("Ex-smoker", "Current smoker")),
+        default = FALSE
+      ),
+      # Blank out rows to be replaced (NA, or an impossible never)
+      smoking_status_cln = if_else(
+        smoke == "Never smoked" & prior_smoked,
+        NA_character_,
+        smoke
+      ),
+      .by = patient_id
+    ) |>
+    fill(smoking_status_cln, .direction = "down", .by = patient_id) |>
+    mutate(
+      # Find earliest ex/current record
+      first_smk = first(smoke[smoke %in% c("Ex-smoker", "Current smoker")]),
+      # If earliest ex/current record is "Ex-smoker" then replace "Never" with "Ex-smoker"
+      # Leaves all "Never" and any "Current" alone
+      smoking_status_cln = if_else(
+        smoking_status_cln == "Never smoked" & first_smk %in% "Ex-smoker",
+        "Ex-smoker",
+        smoking_status_cln
+      ),
+      .by = patient_id
+    ) |>
+    select(-prior_smoked, -first_smk)
+}
