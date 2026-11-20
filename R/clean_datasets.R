@@ -290,10 +290,6 @@ clean_asthma_control <- function(df = asthma_control_labelled) {
       )
     ) |>
     select(
-      where(\(x) any(!is.na(x))),
-      -country
-    ) |>
-    relocate(
       patient_id,
       uidpatvis,
       visit_id,
@@ -315,11 +311,13 @@ clean_asthma_control <- function(df = asthma_control_labelled) {
           "acq_score_rangefail",
           "acq_version",
           "acq_ac",
+          "airq_score",
           "asthma_control",
           "asthma_control_source"
         )
       ),
-      everything()
+      everything(),
+      -country
     )
 }
 
@@ -348,8 +346,12 @@ clean_spirometry <- function(
   fvc_range_high = 8
 ) {
   df |>
+    rename_with(
+      ~ str_remove(.x, "observation_|visit_|spirometry_"),
+      .cols = contains("_date")
+    ) |>
     # Drop rows with missing measurement date is missing
-    filter_out(is.na(spirometry_date)) |>
+    filter_out(is.na(date)) |>
     # If post-bronchodilator measures are not available at all time points for a patient, use pre-bronchodilator only to be consistent over time
     mutate(
       exclude_post_fev1_measures = !all(!is.na(post_fev1)),
@@ -358,6 +360,7 @@ clean_spirometry <- function(
     ) |>
     # Range checks against values specified above
     mutate(
+      across(c(pre_fev1, post_fev1, pre_fvc, post_fvc), \(var) as.numeric(var)),
       across(
         c(pre_fev1, post_fev1),
         \(var) {
@@ -374,13 +377,13 @@ clean_spirometry <- function(
         },
         .names = "{.col}_rangefail"
       ),
-      # FEV1 should be less than FVC
+      # FEV1 should be less than FVC, but could be the same
       pre_fev1_fvc_implausible = !is.na(pre_fev1) &
         !is.na(pre_fvc) &
-        pre_fev1 >= pre_fvc,
+        pre_fev1 > pre_fvc,
       post_fev1_fvc_implausible = !is.na(post_fev1) &
         !is.na(post_fvc) &
-        post_fev1 >= post_fvc,
+        post_fev1 > post_fvc,
       # Flag records to exclude based on above checks
       pre_fev1_exclude = pre_fev1_rangefail | pre_fev1_fvc_implausible,
       pre_fvc_exclude = pre_fvc_rangefail | pre_fev1_fvc_implausible,
@@ -410,7 +413,7 @@ clean_spirometry <- function(
         !is.na(post_fev1) & !post_fev1_exclude ~ "post",
         !is.na(post_fev1) & post_fev1_exclude & !pre_fev1_exclude ~ "pre",
         !is.na(pre_fev1) & !pre_fev1_exclude ~ "pre",
-        .default = NA_character_
+        .default = NA_character_ # Empty if no FEV1 measure
       ),
       # Create single fvc measure for baseline and longitudinal description
       fvc = structure(
@@ -429,7 +432,7 @@ clean_spirometry <- function(
         !is.na(post_fvc) & !post_fvc_exclude ~ "post",
         !is.na(post_fvc) & post_fvc_exclude & !pre_fvc_exclude ~ "pre",
         !is.na(pre_fvc) & !pre_fvc_exclude ~ "pre",
-        .default = NA_character_
+        .default = NA_character_ # Empty if no FVC measure
       ),
       # Calculate ratio measure for baseline and longitudinal description
       fev1_fvc_ratio = structure(
@@ -490,23 +493,23 @@ clean_biomarkers <- function(
 
   df <- df |>
     # remove_empty_imputation_fields() |>
-    rename_with(~ str_replace(.x, "_rlt", "_cnt"), contains("feno")) |>
-    pivot_longer(
-      cols = -c(
-        patient_id,
-        visit_id,
-        visit_id_imputed,
-        visit_id_imputed_flag,
-        result_date,
-        result_date_imputed,
-        result_date_imputed_flag
-      ),
-      names_to = c("test", ".value"),
-      names_pattern = "^(.+?)_(cnt|cnt_imputed_flag|cnt_imputed)$"
-    ) |>
-    filter_out(is.na(cnt)) |>
-    rename_with(~ str_replace(.x, "cnt", "result"), contains("cnt")) |>
-    mutate(result_date = ymd(result_date)) |>
+    # rename_with(~ str_replace(.x, "_rlt", "_cnt"), contains("feno")) |>
+    # pivot_longer(
+    #   cols = -c(
+    #     patient_id,
+    #     visit_id,
+    #     visit_id_imputed,
+    #     visit_id_imputed_flag,
+    #     result_date,
+    #     result_date_imputed,
+    #     result_date_imputed_flag
+    #   ),
+    #   names_to = c("test", ".value"),
+    #   names_pattern = "^(.+?)_(cnt|cnt_imputed_flag|cnt_imputed)$"
+    # ) |>
+    # filter_out(is.na(cnt)) |>
+    # rename_with(~ str_replace(.x, "cnt", "result"), contains("cnt")) |>
+    # mutate(result_date = ymd(result_date)) |>
     # Range checks against values specified above
     mutate(
       exclude_rangefail = case_when(
@@ -536,14 +539,14 @@ clean_biomarkers <- function(
           result != max(result, na.rm = TRUE) ~ FALSE,
         .default = TRUE
       ),
-      .by = c(patient_id, result_date, test)
+      .by = c(patient_id, date, test)
     )
 
   if (drop_duplicate) {
     df <- df |>
       filter(keep_result) |>
       # Some patients still have identical rows - these can be dropped, keeps first
-      distinct(patient_id, result_date, test, .keep_all = TRUE) |>
+      distinct(patient_id, date, test, .keep_all = TRUE) |>
       select(-keep_result, -duplicate_result)
   }
 
