@@ -14,7 +14,9 @@ clean_biomarkers(
   ige_range_high = 1e+05,
   reduce_function = "max",
   drop_duplicate = TRUE,
-  drop_rangefail = FALSE
+  drop_rangefail = FALSE,
+  keep_flags = TRUE,
+  flag_only = FALSE
 )
 }
 \arguments{
@@ -31,13 +33,23 @@ clean_biomarkers(
 \item{ige_range_low}{numeric. Lowest plausible value for IgE range check.}
 
 \item{ige_range_high}{numeric. Highest plausible value for Ige range check.}
+
+\item{reduce_function}{character. Function to reduce duplicates (max, mean, min).}
+
+\item{drop_duplicate}{logical. Remove flagged rows among duplicated records.}
+
+\item{drop_rangefail}{logical. Remove flagged out of range rows.}
+
+\item{keep_flags}{logical. Keep columns used to flag rows with errors.}
+
+\item{flag_only}{logical. Use to check output, keeps all records.}
 }
 \description{
-Reshapes biomarkers dataset to long format with multiple rows per test.
 Applies range checks (0 ≤ BEOS ≤ 5000; 0 ≤ FeNO ≤ 300; 0 ≤ IgE ≤ 100000)
 to recorded biomarker measures. Flags cases Where multiple results are
 recorded for a test on a single date, and allows for three approaches for
 reducing these duplicates, either keeping minimum, mean, or maximum value.
 Further cleaning steps to drop these duplicates and exclude measures failing
-range checks can be specified.
+range checks can be specified. All measures must be in cells/mcL for beos,
+IU/mL for IgE, and ppb for FeNO.
 }
