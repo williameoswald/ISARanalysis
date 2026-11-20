@@ -461,13 +461,13 @@ clean_spirometry <- function(
 
 #' Clean and derive biomarker measures from ISAR standardised biomarkers dataset.
 #'
-#' Reshapes biomarkers dataset to long format with multiple rows per test.
 #' Applies range checks (0 ≤ BEOS ≤ 5000; 0 ≤ FeNO ≤ 300; 0 ≤ IgE ≤ 100000)
 #' to recorded biomarker measures. Flags cases Where multiple results are
 #' recorded for a test on a single date, and allows for three approaches for
 #' reducing these duplicates, either keeping minimum, mean, or maximum value.
 #' Further cleaning steps to drop these duplicates and exclude measures failing
-#' range checks can be specified.
+#' range checks can be specified. All measures must be in cells/mcL for beos,
+#' IU/mL for IgE, and ppb for FeNO.
 #'
 #' @param df character. Name of labelled biomarkers dataset.
 #' @param beos_range_low numeric. Lowest plausible value for BEOS range check.
@@ -476,7 +476,12 @@ clean_spirometry <- function(
 #' @param feno_range_high numeric. Highest plausible value for FeNO range check.
 #' @param ige_range_low numeric. Lowest plausible value for IgE range check.
 #' @param ige_range_high numeric. Highest plausible value for Ige range check.
-
+#' @param reduce_function character. Function to reduce duplicates (max, mean, min).
+#' @param drop_duplicate logical. Remove flagged rows among duplicated records.
+#' @param drop_rangefail logical. Remove flagged out of range rows.
+#' @param keep_flags logical. Keep columns used to flag rows with errors.
+#' @param flag_only logical. Use to check output, keeps all records.
+#'
 #' @importFrom dplyr filter filter_out select distinct mutate across if_else case_when rename_with n
 #' @importFrom tidyr pivot_longer
 #' @importFrom lubridate ymd
@@ -492,76 +497,102 @@ clean_biomarkers <- function(
   ige_range_high = 100000,
   reduce_function = "max",
   drop_duplicate = TRUE,
-  drop_rangefail = FALSE
+  drop_rangefail = FALSE,
+  keep_flags = TRUE,
+  flag_only = FALSE
 ) {
   if (!reduce_function %in% c("min", "max", "mean")) {
     stop('De-duplicating function must be "min", "mean", or "max"')
   }
 
+  group_vars <- c("patient_id", "date", "test")
+  is_mean <- reduce_function == "mean"
+  reduce_fn <- switch(reduce_function, min = min, max = max, mean = mean)
+
+  flag_cols <- c(
+    "result_out_of_range",
+    "eligible_row",
+    "duplicate_result",
+    "reduced_result",
+    "reduced_result_out_of_range",
+    "keep_result"
+  )
+
+  # Vectorised range check, usable on any value (raw result or reduced result)
+  out_of_range <- function(test, x) {
+    case_when(
+      test == "beos" & (x < beos_range_low | x > beos_range_high) ~ TRUE,
+      test == "feno" & (x < feno_range_low | x > feno_range_high) ~ TRUE,
+      test == "ige" & (x < ige_range_low | x > ige_range_high) ~ TRUE,
+      .default = FALSE
+    )
+  }
+
+  # Missing results are dropped up front, so they never reach the flags
+  df <- filter_out(df, is.na(result))
+
+  # Flag everything, drop nothing
+  #   result_out_of_range:         raw result outside the specified range
+  #   eligible_row:                row may be used to choose/average the result
+  #                                (out-of-range rows are not eligible if they
+  #                                will be dropped)
+  #   duplicate_result:            group has more than one row
+  #   reduced_result:              min/max/mean of eligible results in the group
+  #   reduced_result_out_of_range: reduced_result outside the specified range
+  #   keep_result:                 the single row retained per group
+  #                                (FALSE for every row if none are eligible)
   df <- df |>
-    # remove_empty_imputation_fields() |>
-    # rename_with(~ str_replace(.x, "_rlt", "_cnt"), contains("feno")) |>
-    # pivot_longer(
-    #   cols = -c(
-    #     patient_id,
-    #     visit_id,
-    #     visit_id_imputed,
-    #     visit_id_imputed_flag,
-    #     result_date,
-    #     result_date_imputed,
-    #     result_date_imputed_flag
-    #   ),
-    #   names_to = c("test", ".value"),
-    #   names_pattern = "^(.+?)_(cnt|cnt_imputed_flag|cnt_imputed)$"
-    # ) |>
-    # filter_out(is.na(cnt)) |>
-    # rename_with(~ str_replace(.x, "cnt", "result"), contains("cnt")) |>
-    # mutate(result_date = ymd(result_date)) |>
-    # Range checks against values specified above
     mutate(
-      exclude_rangefail = case_when(
-        test == "beos" &
-          (result < beos_range_low | result > beos_range_high) ~ TRUE,
-        test == "feno" &
-          (result < feno_range_low | result > feno_range_high) ~ TRUE,
-        test == "ige" &
-          (result < ige_range_low | result > ige_range_high) ~ TRUE,
-        .default = FALSE
-      ),
+      result_out_of_range = out_of_range(test, result),
+      eligible_row = !(drop_rangefail & result_out_of_range)
     ) |>
     mutate(
-      duplicate_result = case_when(
-        n() > 1 ~ TRUE,
-        .default = FALSE
-      ),
-      keep_result = case_when(
-        duplicate_result &
-          reduce_function == "min" &
-          result != min(result, na.rm = TRUE) ~ FALSE,
-        duplicate_result &
-          reduce_function == "mean" &
-          result != mean(result, na.rm = TRUE) ~ FALSE,
-        duplicate_result &
-          reduce_function == "max" &
-          result != max(result, na.rm = TRUE) ~ FALSE,
-        .default = TRUE
-      ),
-      .by = c(patient_id, date, test)
-    )
+      duplicate_result = n() > 1,
+      reduced_result = if (any(eligible_row)) {
+        reduce_fn(result[eligible_row])
+      } else {
+        NA_real_
+      },
+      keep_result = if (any(eligible_row)) {
+        row_number() ==
+          which(eligible_row & (is_mean | result == reduced_result))[1]
+      } else {
+        FALSE
+      },
+      .by = all_of(group_vars)
+    ) |>
+    mutate(reduced_result_out_of_range = out_of_range(test, reduced_result))
 
-  if (drop_duplicate) {
-    df <- df |>
-      filter(keep_result) |>
-      # Some patients still have identical rows - these can be dropped, keeps first
-      distinct(patient_id, date, test, .keep_all = TRUE) |>
-      select(-keep_result, -duplicate_result)
+  # Drop, according to flags
+  if (!flag_only) {
+    if (drop_rangefail) {
+      df <- filter_out(df, result_out_of_range)
+    }
+
+    if (drop_duplicate) {
+      df <- filter(df, keep_result)
+
+      if (is_mean) {
+        # Swap in the group mean and carry its range flag across
+        df <- df |>
+          mutate(
+            result = reduced_result,
+            result_out_of_range = reduced_result_out_of_range
+          )
+
+        # Means that fail the range check are dropped too
+        if (drop_rangefail) {
+          df <- filter_out(df, result_out_of_range)
+        }
+      }
+    }
+
+    if (!keep_flags) {
+      df <- select(df, -any_of(flag_cols))
+    }
   }
 
-  if (drop_rangefail) {
-    df <- df |>
-      filter_out(exclude_rangefail) |>
-      select(-exclude_rangefail)
-  }
+  df
 }
 
 #' Clean and derive measures from ISAR standardised biologics dataset.
