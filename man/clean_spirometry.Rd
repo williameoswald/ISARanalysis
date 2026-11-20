@@ -27,7 +27,6 @@ clean_spirometry(
 Applies range checks and plausibility checks (FEV1 >= FVC) to pre- and
 post-bronchodilator spirometry measures. Where post-bronchodilator measures
 are available at every timepoint for a patient, they are prioritised over
-pre-bronchodilator measures. Derives single composite FEV1, FVC, FEV1/FVC ratio,
-and percent predicted FEV1 measures, along with categorical classifications
-for FEV1 percent predicted (<80% vs ≥80%) and FEV1/FVC ratio (<0.70 vs ≥0.70).
+pre-bronchodilator measures. Derives single composite FEV1, FVC, and FEV1/FVC ratio,
+along with categorical classifications for FEV1/FVC ratio (<0.70 vs ≥0.70).
 }
