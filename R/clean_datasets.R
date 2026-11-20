@@ -49,25 +49,32 @@ clean_demographics <- function(df = demographics_labelled) {
 clean_lifestyle <- function(df = lifestyle_labelled) {
   df |>
     mutate(
+      wt = as.numeric(wt),
+      ht = as.numeric(ht),
       # Range checks
       across(
-        c(weight),
+        c(wt),
         \(var) {
           var < 20 | var > 635
         },
-        .names = "{.col}_exclude"
+        .names = "{.col}_rangefail"
       ),
       across(
-        c(height),
+        c(ht),
         \(var) {
           var < 1.3 | var > 2.2
         },
-        .names = "{.col}_exclude"
+        .names = "{.col}_rangefail"
       ),
-      bmi = case_when(
-        height_exclude | weight_exclude ~ NA,
-        is.na(height) | is.na(weight) ~ NA,
-        .default = bmi
+      weight = structure(if_else(!wt_rangefail, wt, NA), label = "Weight, kg"),
+      height = structure(if_else(!ht_rangefail, ht, NA), label = "Height, m"),
+      bmi = structure(
+        case_when(
+          ht_rangefail | wt_rangefail ~ NA,
+          is.na(weight) | is.na(height) ~ NA,
+          .default = weight / (height^2)
+        ),
+        label = "BMI, kg/m^2"
       ),
       obese = structure(
         case_when(
