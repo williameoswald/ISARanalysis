@@ -148,6 +148,14 @@ calculate_eosinophilic_grade <- function(df) {
     )
 }
 
+#' Helper function to create SRD lifestyle variable "smoking_status". Applies
+#' logic rules to clean smoking status over time, e.g. "Never" smoked status
+#' following an earlier record indicating a smoker.
+#'
+#' @importFrom dplyr mutate arrange select if_else lag first
+#' @importFrom tidyr fill
+#'
+#' @export
 clean_smoking <- function(df) {
   # Check where duplicated visit dates
   # Check: df |> count(smoke, smoking_status_cln)
