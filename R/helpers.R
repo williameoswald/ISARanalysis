@@ -205,6 +205,8 @@ clean_smoking <- function(df) {
 
 #
 #' Helper function to flag outlying values using either Tukey’s IQR or 3*SD approach.
+#' 3sd assumes normality, is influenced by outliers, and has small sample problems
+#' iqr robust to outliers and normality and works with small samples
 #' @param method character. One of either "iqr" or "3sd" for desired approach
 #' @param low logical. Flag outliers from low end of distribution.
 #' @param high logical. Flag outliers from high end of distribution.
@@ -217,8 +219,6 @@ is_outlier <- function(
   high = TRUE
 ) {
   method <- match.arg(method)
-  # 3sd assumes normality, is influenced by outliers, and has small sample problems
-  # iqr robust to outliers and normality and works with small samples
 
   if (!low && !high) {
     stop("At least one of `low` or `high` must be TRUE.")

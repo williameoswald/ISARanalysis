@@ -2,7 +2,9 @@
 % Please edit documentation in R/helpers.R
 \name{is_outlier}
 \alias{is_outlier}
-\title{Helper function to flag outlying values using either Tukey’s IQR or 3*SD approach.}
+\title{Helper function to flag outlying values using either Tukey’s IQR or 3*SD approach.
+3sd assumes normality, is influenced by outliers, and has small sample problems
+iqr robust to outliers and normality and works with small samples}
 \usage{
 is_outlier(x, method = c("iqr", "3sd"), low = TRUE, high = TRUE)
 }
@@ -15,4 +17,6 @@ is_outlier(x, method = c("iqr", "3sd"), low = TRUE, high = TRUE)
 }
 \description{
 Helper function to flag outlying values using either Tukey’s IQR or 3*SD approach.
+3sd assumes normality, is influenced by outliers, and has small sample problems
+iqr robust to outliers and normality and works with small samples
 }
