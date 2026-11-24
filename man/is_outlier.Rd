@@ -6,6 +6,13 @@
 \usage{
 is_outlier(x, method = c("iqr", "3sd"), low = TRUE, high = TRUE)
 }
+\arguments{
+\item{method}{character. One of either "iqr" or "3sd" for desired approach}
+
+\item{low}{logical. Flag outliers from low end of distribution.}
+
+\item{high}{logical. Flag outliers from high end of distribution.}
+}
 \description{
 Helper function to flag outlying values using either Tukey’s IQR or 3*SD approach.
 }

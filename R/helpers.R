@@ -205,7 +205,10 @@ clean_smoking <- function(df) {
 
 #
 #' Helper function to flag outlying values using either Tukey’s IQR or 3*SD approach.
-#'
+#' @param method character. One of either "iqr" or "3sd" for desired approach
+#' @param low logical. Flag outliers from low end of distribution.
+#' @param high logical. Flag outliers from high end of distribution.
+
 #' @export
 is_outlier <- function(
   x,
