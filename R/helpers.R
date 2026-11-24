@@ -202,3 +202,39 @@ clean_smoking <- function(df) {
     ) |>
     select(-prior_smoked, -first_smk)
 }
+
+#
+#' Helper function to flag outlying values using either Tukey’s IQR or 3*SD approach.
+#'
+#' @export
+is_outlier <- function(
+  x,
+  method = c("iqr", "3sd"),
+  low = TRUE,
+  high = TRUE
+) {
+  method <- match.arg(method)
+  # 3sd assumes normality, is influenced by outliers, and has small sample problems
+  # iqr robust to outliers and normality and works with small samples
+
+  if (!low && !high) {
+    stop("At least one of `low` or `high` must be TRUE.")
+  }
+
+  if (method == "iqr") {
+    q <- quantile(x, c(0.25, 0.75), na.rm = TRUE, names = FALSE)
+    spread <- 1.5 * (q[2] - q[1])
+    lower <- q[1] - spread
+    upper <- q[2] + spread
+  } else {
+    centre <- mean(x, na.rm = TRUE)
+    spread <- 3 * sd(x, na.rm = TRUE)
+    lower <- centre - spread
+    upper <- centre + spread
+  }
+
+  is_low <- if (low) x < lower else FALSE
+  is_high <- if (high) x > upper else FALSE
+
+  is_low | is_high
+}
