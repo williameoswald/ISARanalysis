@@ -3,6 +3,7 @@
 #' This function imports all listed datasets and creates a new "_labelled" version with all variables labelled, categorical variables formatted as factors with defined levels, and confirms and formats dates/numerics as defined in dictionary workbook
 #' @param filename character. Name of the CSV file to import.
 #' @param keep_raw logical. Whether to keep the raw unlabelled dataset. Default TRUE.
+#' @param output_env character. Specify environment in which to output objects. Default .GlobalEnv.
 #' @return Assigns object in global environment using abbreviated dataset name
 #' @importFrom dplyr filter pull mutate select any_of across everything cur_column if_else na_if
 #' @importFrom purrr map compact pluck iwalk set_names
@@ -14,7 +15,11 @@
 #' @importFrom here here
 #'
 #' @export
-import_datasets <- function(filename, keep_raw = TRUE) {
+import_datasets <- function(
+  filename,
+  keep_raw = TRUE,
+  output_env = .GlobalEnv
+) {
   if (!exists("dictionary", envir = .GlobalEnv)) {
     stop(glue::glue("Dataset dictionary not found in parent environment"))
   }
@@ -161,7 +166,7 @@ import_datasets <- function(filename, keep_raw = TRUE) {
     assign(
       paste0(str_to_lower(dataset_name), "_raw"),
       df_raw,
-      envir = .GlobalEnv
+      envir = output_env
     )
   }
 
@@ -187,6 +192,6 @@ import_datasets <- function(filename, keep_raw = TRUE) {
   assign(
     paste0(str_to_lower(dataset_name), "_labelled"),
     df,
-    envir = .GlobalEnv
+    envir = output_env
   )
 }
