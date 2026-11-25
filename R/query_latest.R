@@ -133,11 +133,23 @@ query_latest <- function(
       "patient_id",
       "spirometry_date",
       "spirometry_gap",
+      "gender",
+      "age_lf",
+      "ht_lf",
       "fev1",
-      "fev1_percpred",
-      "fev1_percpred_cat",
+      "fev1_flag",
+      "fvc",
+      "fvc_flag",
       "fev1_fvc_ratio",
-      "fev1_fvc_ratio_cat"
+      "fev1_fvc_ratio_cat",
+      "fev1_GLIgl_lln",
+      "fev1_GLIgl_pctpred",
+      "fev1_GLIgl_pctpred_cat",
+      "fev1_GLIgl_zscore",
+      "fev1_GLIgl_zscore_cat",
+      "fvc_GLIgl_lln",
+      "fvc_GLIgl_pctpred",
+      "fvc_GLIgl_zscore"
     )
     use_date <- "spirometry_date"
   }
