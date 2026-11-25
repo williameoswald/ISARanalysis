@@ -110,13 +110,24 @@ query_latest <- function(
       "ac_visit_id",
       "ac_date",
       "ac_gap",
-      "asthma_control",
+      "gina_day_1",
+      "gina_activity_2",
+      "gina_night_3",
+      "gina_reliever_4",
+      "gina_lf_5",
       "gina_score",
+      "gina_score_rangefail",
       "gina_ac",
       "act_score",
+      "act_score_rangefail",
       "act_ac",
       "acq_score",
-      "acq_ac"
+      "acq_score_rangefail",
+      "acq_version",
+      "acq_ac",
+      "asthma_control",
+      "asthma_control_source",
+      "airq_score"
     )
     use_date <- "visit_date"
   } else if (search_measure == "exac") {
